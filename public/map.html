@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CivicPulse Interactive Map</title>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <style>
+    html, body, #map {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: #f8fafc;
+    }
+    
+    /* Sleek Custom glowing blips */
+    .custom-pin-container {
+      position: relative;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pulse-ring {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      opacity: 0.35;
+      animation: pulse-glow 2.5s infinite cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+    }
+    .pin-core {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15), 0 0 6px rgba(0, 0, 0, 0.05);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .pin-core:hover {
+      transform: scale(1.3);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+    }
+    
+    @keyframes pulse-glow {
+      0% {
+        transform: scale(0.4);
+        opacity: 0.7;
+      }
+      100% {
+        transform: scale(1.4);
+        opacity: 0;
+      }
+    }
+    
+    /* Clean leaflet popup customizations */
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+      border: 1px solid #f1f5f9;
+    }
+    .leaflet-popup-tip-container {
+      margin-top: -1px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- Leaflet Core JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Leaflet Heatmap Plugin CDN -->
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <script>
+    // Initialize map focused on Visakhapatnam center
+    const map = L.map('map', {
+      center: [17.76, 83.25],
+      zoom: 11,
+      zoomControl: true
+    });
+
+    // Add CartoDB Positron minimalist light grey tiles for premium aesthetic
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      maxZoom: 20,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(map);
+
+    let markers = [];
+    let pickerMarker = null;
+    let heatLayer = null;
+    let mode = 'display'; // 'display' or 'pick'
+
+    // Listen for configuration and data messages from the parent Next.js application
+    window.addEventListener('message', function(event) {
+      const data = event.data;
+      if (!data) return;
+
+      if (data.type === 'init') {
+        mode = data.mode || 'display';
+        
+        if (mode === 'pick') {
+          // Initialize a draggable picker pin
+          const initLat = data.lat || 17.8860;
+          const initLng = data.lng || 83.4470;
+          
+          pickerMarker = L.marker([initLat, initLng], {
+            draggable: true
+          }).addTo(map);
+
+          map.setView([initLat, initLng], 12);
+
+          // Click on map to position picker marker
+          map.on('click', function(e) {
+            const latlng = e.latlng;
+            pickerMarker.setLatLng(latlng);
+            sendCoords(latlng.lat, latlng.lng);
+          });
+
+          // Drag event on marker
+          pickerMarker.on('dragend', function(e) {
+            const latlng = pickerMarker.getLatLng();
+            sendCoords(latlng.lat, latlng.lng);
+          });
+        }
+      }
+
+      if (data.type === 'update-clusters' && mode === 'display') {
+        // Clear old heatmap layers
+        if (heatLayer) {
+          map.removeLayer(heatLayer);
+          heatLayer = null;
+        }
+
+        // Clear old markers
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+
+        const clusters = data.clusters || [];
+        const selectedId = data.selectedId;
+
+        const heatPoints = [];
+
+        clusters.forEach(c => {
+          const lat = c.location.latitude;
+          const lng = c.location.longitude;
+          
+          // Determine color based on priority
+          let color = '#10b981'; // Green
+          if (c.priorityScore >= 90) color = '#ef4444'; // Red
+          else if (c.priorityScore >= 80) color = '#f97316'; // Orange
+          else if (c.priorityScore >= 70) color = '#f59e0b'; // Amber
+
+          const isSelected = selectedId === c.clusterId;
+          const borderStyle = isSelected ? 'border: 3px solid #2563eb; transform: scale(1.25);' : 'border: 2px solid white;';
+
+          // Custom HTML glowing marker icon
+          const icon = L.divIcon({
+            className: 'custom-leaflet-icon',
+            html: `
+              <div class="custom-pin-container">
+                <div class="pulse-ring" style="background-color: ${color};"></div>
+                <div class="pin-core" style="background-color: ${color}; ${borderStyle}"></div>
+              </div>
+            `,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          });
+
+          const marker = L.marker([lat, lng], { icon: icon }).addTo(map);
+          
+          // Hover tooltip
+          marker.bindTooltip(`<strong>${c.title}</strong><br>Priority Score: ${c.priorityScore}/100<br>Demands count: ${c.citizenCount}`, {
+            direction: 'top',
+            offset: [0, -10]
+          });
+
+          // Click handler to select cluster in parent React component
+          marker.on('click', function() {
+            window.parent.postMessage({
+              type: 'select-cluster',
+              clusterId: c.clusterId
+            }, '*');
+          });
+
+          markers.push(marker);
+
+          // Center map if selected
+          if (isSelected) {
+            map.panTo([lat, lng]);
+          }
+
+          // Scale intensity based on priorityScore (min 0.3 to max 1.0)
+          const intensity = Math.max(0.3, Math.min(1.0, c.priorityScore / 100));
+          heatPoints.push([lat, lng, intensity]);
+        });
+
+        // Add smooth density heatmap layer underneath markers
+        if (heatPoints.length > 0) {
+          heatLayer = L.heatLayer(heatPoints, {
+            radius: 50,
+            blur: 35,
+            maxZoom: 16,
+            gradient: {
+              0.3: '#10b981', // Low - Emerald Green
+              0.6: '#f97316', // Medium - Orange
+              0.9: '#ef4444'  // High - Red
+            }
+          }).addTo(map);
+        }
+      }
+
+      if (data.type === 'set-picker-coords' && mode === 'pick' && pickerMarker) {
+        pickerMarker.setLatLng([data.lat, data.lng]);
+        map.panTo([data.lat, data.lng]);
+      }
+    });
+
+    function sendCoords(lat, lng) {
+      window.parent.postMessage({
+        type: 'set-coords',
+        lat: lat,
+        lng: lng
+      }, '*');
+    }
+
+    // Signal to parent window that the iframe map has loaded
+    window.parent.postMessage({ type: 'map-ready' }, '*');
+  </script>
+</body>
+</html>
