@@ -393,23 +393,27 @@ export function calculatePriorityScore(
   };
 }
 
-// Timeout helper to prevent infinite loading spinners when Supabase connection hangs
-function withTimeout<T>(promise: Promise<T>, ms: number = 1500): Promise<T> {
+// Timeout helper — 5s gives enough time for cold Supabase connections
+function withTimeout<T>(promise: Promise<T>, ms: number = 5000): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
-      reject(new Error("Supabase operation timed out"));
+      reject(new Error(`Supabase timed out after ${ms}ms`));
     }, ms);
-
     promise
-      .then((res) => {
-        clearTimeout(timer);
-        resolve(res);
-      })
-      .catch((err) => {
-        clearTimeout(timer);
-        reject(err);
-      });
+      .then((res) => { clearTimeout(timer); resolve(res); })
+      .catch((err) => { clearTimeout(timer); reject(err); });
   });
+}
+
+// Helper — returns the Supabase client or null (browser-only)
+async function getSupabase() {
+  if (typeof window === "undefined") return null;
+  try {
+    const { supabase } = await import("./supabase");
+    return supabase;
+  } catch {
+    return null;
+  }
 }
 
 function getLocalData<T>(key: string, defaultValue: T): T {
@@ -494,23 +498,15 @@ function mapReportFromPG(r: any): Report {
   };
 }
 
-// Core Database Service (Lazy loads Supabase SDK to prevent SSR build issues)
+// ─── Core Database Service ───────────────────────────────────────────────────
+// Supabase is the PRIMARY store. localStorage is OFFLINE-ONLY fallback.
 export const DBService = {
-  async isFirebaseEnabled(): Promise<boolean> {
-    if (typeof window === "undefined") return false;
-    const forceMock = localStorage.getItem("civicpulse_force_mock") === "true";
-    if (forceMock) return false;
-    try {
-      const { supabase } = await import("./supabase");
-      return !!supabase;
-    } catch (e) {
-      return false;
-    }
-  },
 
+  // ── Seed preset data into Supabase on first load ──────────────────────────
   async seedData(force: boolean = false): Promise<void> {
-    const isFb = await this.isFirebaseEnabled();
-    
+    const sb = await getSupabase();
+
+    // Always keep localStorage seeded as offline cache
     if (typeof window !== "undefined") {
       const isSeeded = localStorage.getItem("civicpulse_seeded");
       if (!isSeeded || force) {
@@ -522,20 +518,17 @@ export const DBService = {
       }
     }
 
-    if (isFb) {
-      try {
-        const { supabase } = await import("./supabase");
-        if (!supabase) return;
+    if (!sb) return;
 
-        // Check if data exists in Supabase
-        const { data, error } = await withTimeout(
-          supabase.from("public_data").select("region_id").limit(1), 
-          1500
-        );
+    try {
+      // Only seed Supabase if table is empty or force
+      const { data, error } = await withTimeout(
+        sb.from("public_data").select("region_id").limit(1)
+      );
 
-        if (error || !data || data.length === 0 || force) {
-          // 1. Seed Public Data
-          const pgPublicData = PRESET_PUBLIC_DATA.map(d => ({
+      if (error || !data || data.length === 0 || force) {
+        await withTimeout(sb.from("public_data").upsert(
+          PRESET_PUBLIC_DATA.map(d => ({
             region_id: d.regionId,
             village_name: d.villageName,
             population: d.population,
@@ -547,11 +540,11 @@ export const DBService = {
             distance_to_nearest_school_km: d.distanceToNearestSchoolKm,
             enrollment_growth_rate: d.enrollmentGrowthRate,
             water_purity_index: d.waterPurityIndex
-          }));
-          await withTimeout(supabase.from("public_data").upsert(pgPublicData), 1500);
+          }))
+        ));
 
-          // 2. Seed Submissions
-          const pgSubmissions = PRESET_SUBMISSIONS.map(s => ({
+        await withTimeout(sb.from("submissions").upsert(
+          PRESET_SUBMISSIONS.map(s => ({
             submission_id: s.submissionId,
             user_id: s.userId,
             user_name: s.userName,
@@ -559,18 +552,18 @@ export const DBService = {
             translated_text: s.translatedText,
             summary: s.summary,
             category: s.category,
-            image_url: s.imageUrl,
+            image_url: s.imageUrl ?? null,
             latitude: s.latitude,
             longitude: s.longitude,
             created_at: s.createdAt,
-            cluster_id: s.clusterId,
+            cluster_id: s.clusterId ?? null,
             village_name: s.villageName,
             language: s.language
-          }));
-          await withTimeout(supabase.from("submissions").upsert(pgSubmissions), 1500);
+          }))
+        ));
 
-          // 3. Seed Clusters
-          const pgClusters = PRESET_CLUSTERS.map(c => ({
+        await withTimeout(sb.from("clusters").upsert(
+          PRESET_CLUSTERS.map(c => ({
             cluster_id: c.clusterId,
             title: c.title,
             category: c.category,
@@ -581,40 +574,40 @@ export const DBService = {
             images: c.images,
             location: c.location,
             status: c.status,
-            public_evidence_link: c.publicEvidenceLink
-          }));
-          await withTimeout(supabase.from("clusters").upsert(pgClusters), 1500);
+            public_evidence_link: c.publicEvidenceLink ?? null
+          }))
+        ));
 
-          console.log("Supabase seeding complete!");
-        }
-      } catch (err) {
-        console.error("Supabase seeding failed, falling back to local storage.", err);
+        console.log("%c✅ CivicPulse: Supabase seed complete", "color:green;font-weight:bold");
       }
+    } catch (err) {
+      console.warn("Supabase seed failed — using localStorage fallback.", err);
     }
   },
 
+  // ── Get all submissions (Supabase primary, localStorage fallback) ──────────
   async getSubmissions(): Promise<Submission[]> {
-    const isFb = await this.isFirebaseEnabled();
-    if (isFb) {
+    const sb = await getSupabase();
+    if (sb) {
       try {
-        const { supabase } = await import("./supabase");
-        if (supabase) {
-          const { data, error } = await withTimeout(supabase.from("submissions").select("*"), 1500);
-          if (error) throw error;
-          if (data && data.length > 0) {
-            const list = data.map(mapSubmissionFromPG);
-            setLocalData("submissions", list);
-            return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-          }
+        const { data, error } = await withTimeout(
+          sb.from("submissions").select("*").order("created_at", { ascending: false })
+        );
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const list = data.map(mapSubmissionFromPG);
+          setLocalData("submissions", list); // keep cache in sync
+          return list;
         }
       } catch (e) {
-        console.warn("Supabase submissions query failed, reading local.", e);
+        console.warn("Supabase getSubmissions failed → localStorage.", e);
       }
     }
     return getLocalData<Submission[]>("submissions", PRESET_SUBMISSIONS)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   },
 
+  // ── Add new submission (Supabase primary, localStorage backup) ────────────
   async addSubmission(sub: Omit<Submission, "submissionId" | "createdAt" | "villageName">): Promise<Submission> {
     const newSub: Submission = {
       ...sub,
@@ -623,18 +616,20 @@ export const DBService = {
       villageName: getNearestVillage(sub.latitude, sub.longitude)
     };
 
-    const current = getLocalData<Submission[]>("submissions", PRESET_SUBMISSIONS);
-    current.unshift(newSub);
-    setLocalData("submissions", current);
+    // 1. Save to localStorage immediately (instant UI feedback)
+    const cached = getLocalData<Submission[]>("submissions", PRESET_SUBMISSIONS);
+    cached.unshift(newSub);
+    setLocalData("submissions", cached);
 
+    // 2. Clusterize (updates local + Supabase clusters)
     await this.clusterizeSubmission(newSub);
 
-    const isFb = await this.isFirebaseEnabled();
-    if (isFb) {
+    // 3. Push to Supabase
+    const sb = await getSupabase();
+    if (sb) {
       try {
-        const { supabase } = await import("./supabase");
-        if (supabase) {
-          const pgSub = {
+        const { error } = await withTimeout(
+          sb.from("submissions").insert({
             submission_id: newSub.submissionId,
             user_id: newSub.userId,
             user_name: newSub.userName,
@@ -642,60 +637,59 @@ export const DBService = {
             translated_text: newSub.translatedText,
             summary: newSub.summary,
             category: newSub.category,
-            image_url: newSub.imageUrl,
+            image_url: newSub.imageUrl ?? null,
             latitude: newSub.latitude,
             longitude: newSub.longitude,
             created_at: newSub.createdAt,
-            cluster_id: newSub.clusterId,
+            cluster_id: newSub.clusterId ?? null,
             village_name: newSub.villageName,
             language: newSub.language
-          };
-          await withTimeout(supabase.from("submissions").insert(pgSub), 1500);
-        }
+          })
+        );
+        if (error) throw error;
+        console.log("%c✅ Submission saved to Supabase", "color:green");
       } catch (e) {
-        console.error("Supabase add submission failed", e);
+        console.error("Supabase addSubmission failed — saved locally only.", e);
       }
     }
 
     return newSub;
   },
 
+  // ── Get clusters (Supabase primary, localStorage fallback) ─────────────────
   async getClusters(): Promise<Cluster[]> {
-    const isFb = await this.isFirebaseEnabled();
-    if (isFb) {
+    const sb = await getSupabase();
+    if (sb) {
       try {
-        const { supabase } = await import("./supabase");
-        if (supabase) {
-          const { data, error } = await withTimeout(supabase.from("clusters").select("*"), 1500);
-          if (error) throw error;
-          if (data && data.length > 0) {
-            const list = data.map(mapClusterFromPG);
-            setLocalData("clusters", list);
-            return list.sort((a, b) => b.priorityScore - a.priorityScore);
-          }
+        const { data, error } = await withTimeout(
+          sb.from("clusters").select("*").order("priority_score", { ascending: false })
+        );
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const list = data.map(mapClusterFromPG);
+          setLocalData("clusters", list);
+          return list;
         }
       } catch (e) {
-        console.warn("Supabase clusters fetch failed, reading local.", e);
+        console.warn("Supabase getClusters failed → localStorage.", e);
       }
     }
     return getLocalData<Cluster[]>("clusters", PRESET_CLUSTERS)
       .sort((a, b) => b.priorityScore - a.priorityScore);
   },
 
+  // ── Update cluster status (Supabase primary) ────────────────────────────────
   async updateCluster(cluster: Cluster): Promise<void> {
+    // Update local cache first
     const current = getLocalData<Cluster[]>("clusters", PRESET_CLUSTERS);
     const index = current.findIndex(c => c.clusterId === cluster.clusterId);
-    if (index !== -1) {
-      current[index] = cluster;
-      setLocalData("clusters", current);
-    }
+    if (index !== -1) { current[index] = cluster; setLocalData("clusters", current); }
 
-    const isFb = await this.isFirebaseEnabled();
-    if (isFb) {
+    const sb = await getSupabase();
+    if (sb) {
       try {
-        const { supabase } = await import("./supabase");
-        if (supabase) {
-          const pgCluster = {
+        const { error } = await withTimeout(
+          sb.from("clusters").upsert({
             cluster_id: cluster.clusterId,
             title: cluster.title,
             category: cluster.category,
@@ -706,58 +700,58 @@ export const DBService = {
             images: cluster.images,
             location: cluster.location,
             status: cluster.status,
-            public_evidence_link: cluster.publicEvidenceLink
-          };
-          await withTimeout(supabase.from("clusters").upsert(pgCluster), 1500);
-        }
+            public_evidence_link: cluster.publicEvidenceLink ?? null
+          })
+        );
+        if (error) throw error;
       } catch (e) {
-        console.error("Supabase update cluster failed", e);
+        console.error("Supabase updateCluster failed.", e);
       }
     }
   },
 
+  // ── Get public data ─────────────────────────────────────────────────────────
   async getPublicData(): Promise<PublicData[]> {
-    const isFb = await this.isFirebaseEnabled();
-    if (isFb) {
+    const sb = await getSupabase();
+    if (sb) {
       try {
-        const { supabase } = await import("./supabase");
-        if (supabase) {
-          const { data, error } = await withTimeout(supabase.from("public_data").select("*"), 1500);
-          if (error) throw error;
-          if (data && data.length > 0) {
-            const list = data.map(mapPublicDataFromPG);
-            setLocalData("publicData", list);
-            return list;
-          }
+        const { data, error } = await withTimeout(sb.from("public_data").select("*"));
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const list = data.map(mapPublicDataFromPG);
+          setLocalData("publicData", list);
+          return list;
         }
       } catch (e) {
-        console.warn("Supabase publicData fetch failed, reading local.", e);
+        console.warn("Supabase getPublicData failed → localStorage.", e);
       }
     }
     return getLocalData<PublicData[]>("publicData", PRESET_PUBLIC_DATA);
   },
 
+  // ── Get reports ─────────────────────────────────────────────────────────────
   async getReports(): Promise<Report[]> {
-    const isFb = await this.isFirebaseEnabled();
-    if (isFb) {
+    const sb = await getSupabase();
+    if (sb) {
       try {
-        const { supabase } = await import("./supabase");
-        if (supabase) {
-          const { data, error } = await withTimeout(supabase.from("reports").select("*"), 1500);
-          if (error) throw error;
-          if (data && data.length > 0) {
-            const list = data.map(mapReportFromPG);
-            setLocalData("reports", list);
-            return list.sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
-          }
+        const { data, error } = await withTimeout(
+          sb.from("reports").select("*").order("generated_at", { ascending: false })
+        );
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const list = data.map(mapReportFromPG);
+          setLocalData("reports", list);
+          return list;
         }
       } catch (e) {
-        console.warn("Supabase reports fetch failed, reading local.", e);
+        console.warn("Supabase getReports failed → localStorage.", e);
       }
     }
-    return getLocalData<Report[]>("reports", []).sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
+    return getLocalData<Report[]>("reports", [])
+      .sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
   },
 
+  // ── Add report ──────────────────────────────────────────────────────────────
   async addReport(report: Omit<Report, "reportId" | "generatedAt">): Promise<Report> {
     const newReport: Report = {
       ...report,
@@ -769,34 +763,33 @@ export const DBService = {
     current.unshift(newReport);
     setLocalData("reports", current);
 
-    const isFb = await this.isFirebaseEnabled();
-    if (isFb) {
+    const sb = await getSupabase();
+    if (sb) {
       try {
-        const { supabase } = await import("./supabase");
-        if (supabase) {
-          const pgReport = {
+        const { error } = await withTimeout(
+          sb.from("reports").insert({
             report_id: newReport.reportId,
             cluster_id: newReport.clusterId,
             cluster_title: newReport.clusterTitle,
-            pdf_url: newReport.pdfUrl,
+            pdf_url: newReport.pdfUrl ?? null,
             generated_at: newReport.generatedAt,
             summary_text: newReport.summaryText
-          };
-          await withTimeout(supabase.from("reports").insert(pgReport), 1500);
-        }
+          })
+        );
+        if (error) throw error;
       } catch (e) {
-        console.error("Supabase add report failed", e);
+        console.error("Supabase addReport failed.", e);
       }
     }
-
     return newReport;
   },
 
+  // ── Clusterize a new submission and sync cluster to Supabase ───────────────
   async clusterizeSubmission(sub: Submission): Promise<void> {
     const clusters = getLocalData<Cluster[]>("clusters", PRESET_CLUSTERS);
-    
-    let matchedCluster = clusters.find(c => 
-      c.category.toLowerCase() === sub.category.toLowerCase() && 
+
+    let matchedCluster = clusters.find(c =>
+      c.category.toLowerCase() === sub.category.toLowerCase() &&
       c.villagesAffected.includes(sub.villageName)
     );
 
@@ -805,20 +798,15 @@ export const DBService = {
       if (sub.imageUrl && !matchedCluster.images.includes(sub.imageUrl)) {
         matchedCluster.images.push(sub.imageUrl);
       }
-      
       const { score, explanation } = calculatePriorityScore(
-        matchedCluster.citizenCount, 
-        sub.villageName, 
-        matchedCluster.category
+        matchedCluster.citizenCount, sub.villageName, matchedCluster.category
       );
       matchedCluster.priorityScore = score;
       matchedCluster.explanation = explanation;
-
       sub.clusterId = matchedCluster.clusterId;
     } else {
-      const newClusterId = "cluster_" + sub.category.toLowerCase() + "_" + Date.now();
+      const newClusterId = "cluster_" + sub.category.toLowerCase().replace(/\s/g, "_") + "_" + Date.now();
       const { score, explanation } = calculatePriorityScore(1, sub.villageName, sub.category);
-      
       const newCluster: Cluster = {
         clusterId: newClusterId,
         title: `Community Request for ${sub.category} Infrastructure in ${sub.villageName}`,
@@ -832,43 +820,42 @@ export const DBService = {
         status: "Pending",
         publicEvidenceLink: sub.villageName.toLowerCase().replace(/[^a-z]/g, "")
       };
-
       clusters.push(newCluster);
       matchedCluster = newCluster;
       sub.clusterId = newClusterId;
     }
 
+    // Persist cluster locally
     setLocalData("clusters", clusters);
-    
+
+    // Update submission cluster reference in local cache
     const currentSubs = getLocalData<Submission[]>("submissions", PRESET_SUBMISSIONS);
     const subIdx = currentSubs.findIndex(s => s.submissionId === sub.submissionId);
-    if (subIdx !== -1) {
-      currentSubs[subIdx] = sub;
-      setLocalData("submissions", currentSubs);
-    }
+    if (subIdx !== -1) { currentSubs[subIdx] = sub; setLocalData("submissions", currentSubs); }
 
-    const isFb = await this.isFirebaseEnabled();
-    if (isFb && matchedCluster) {
-      try {
-        const { supabase } = await import("./supabase");
-        if (supabase) {
-          const pgCluster = {
-            cluster_id: matchedCluster.clusterId,
-            title: matchedCluster.title,
-            category: matchedCluster.category,
-            citizen_count: matchedCluster.citizenCount,
-            villages_affected: matchedCluster.villagesAffected,
-            priority_score: matchedCluster.priorityScore,
-            explanation: matchedCluster.explanation,
-            images: matchedCluster.images,
-            location: matchedCluster.location,
-            status: matchedCluster.status,
-            public_evidence_link: matchedCluster.publicEvidenceLink
-          };
-          await withTimeout(supabase.from("clusters").upsert(pgCluster), 1500);
+    // Sync updated cluster to Supabase
+    if (matchedCluster) {
+      const sb = await getSupabase();
+      if (sb) {
+        try {
+          await withTimeout(
+            sb.from("clusters").upsert({
+              cluster_id: matchedCluster.clusterId,
+              title: matchedCluster.title,
+              category: matchedCluster.category,
+              citizen_count: matchedCluster.citizenCount,
+              villages_affected: matchedCluster.villagesAffected,
+              priority_score: matchedCluster.priorityScore,
+              explanation: matchedCluster.explanation,
+              images: matchedCluster.images,
+              location: matchedCluster.location,
+              status: matchedCluster.status,
+              public_evidence_link: matchedCluster.publicEvidenceLink ?? null
+            })
+          );
+        } catch (e) {
+          console.error("Supabase cluster sync failed.", e);
         }
-      } catch (e) {
-        console.error("Supabase sync clusterize failed", e);
       }
     }
   }

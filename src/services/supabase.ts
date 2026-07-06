@@ -1,17 +1,26 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const DEFAULT_URL = "https://ovsysmmmotxrdjnxpnxq.supabase.co";
-const DEFAULT_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c3lzbW1tb3R4cmRqbnhwbnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMDIxODEsImV4cCI6MjA5ODc3ODE4MX0.negJwtB-IrTb2GH9YgLz-pNYDLWwxLkGPYCRHWyIf2A";
+// Supabase credentials - loaded from env vars (safe for client-side NEXT_PUBLIC_ prefix)
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  "https://ovsysmmmotxrdjnxpnxq.supabase.co";
 
-export function getSupabaseConfig() {
-  if (typeof window === "undefined") {
-    return { url: DEFAULT_URL, key: DEFAULT_KEY };
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92c3lzbW1tb3R4cmRqbnhwbnhxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMDIxODEsImV4cCI6MjA5ODc3ODE4MX0.negJwtB-IrTb2GH9YgLz-pNYDLWwxLkGPYCRHWyIf2A";
+
+// Singleton client — created once, reused across the app
+let _client: SupabaseClient | null = null;
+
+export function getSupabaseClient(): SupabaseClient | null {
+  if (typeof window === "undefined") return null; // SSR guard
+  if (!_client && SUPABASE_URL && SUPABASE_ANON_KEY) {
+    _client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false },
+    });
   }
-  const url = localStorage.getItem("civicpulse_supabase_url") || DEFAULT_URL;
-  const key = localStorage.getItem("civicpulse_supabase_key") || DEFAULT_KEY;
-  return { url, key };
+  return _client;
 }
 
-const { url, key } = getSupabaseConfig();
-
-export const supabase = (url && key) ? createClient(url, key) : null;
+// Named export used throughout db.ts
+export const supabase = getSupabaseClient();
