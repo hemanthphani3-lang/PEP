@@ -137,24 +137,27 @@ export async function analyzeSubmission(
       console.log(`Attempting Gemini API call with key index: ${currentRotationKeyIndex}`);
       const genAI = new GoogleGenerativeAI(key);
       
-      const prompt = `
-      You are the core analysis engine of CivicPulse AI, an MP development intelligence dashboard.
-      Analyze the following citizen request and optional image.
-      Provide your response STRICTLY as a valid JSON object matching the schema below. Do not wrap it in markdown code blocks.
-      
-      JSON Schema:
-      {
-        "translatedText": "Translate the input text into plain English if it is in Hindi, Telugu, or any other language. If it is already in English, output the original text.",
-        "summary": "A concise 1-sentence summary of the main grievance or development request.",
-        "category": "Must be exactly one of the following: Roads, Water, Healthcare, Education, Sanitation, Street Lights, Employment, Agriculture, Public Safety, Environment.",
-        "detectedIssues": ["A list of specific issues or infrastructure defects identified in the text or image. e.g., 'potholes', 'flooding', 'lack of doctors', 'collapsed roof'"],
-        "explanation": "A professional, objective explanation detailing why this issue warrants priority, citing the user's specific complaints and visual evidence.",
-        "language": "The detected input language, e.g., 'English', 'Telugu', 'Hindi'"
-      }
+      const INDIAN_LANGUAGES = "Hindi, Telugu, Tamil, Kannada, Malayalam, Bengali, Marathi, Gujarati, Punjabi, Odia, Assamese, Urdu, Konkani, Manipuri, Nepali, Sanskrit, Bodo, Dogri, Kashmiri, Maithili, Santali, Sindhi";
 
-      Citizen Request Text:
-      "${text}"
-      `;
+      const prompt = `You are the core analysis engine of CivicPulse AI, an MP development intelligence dashboard for Visakhapatnam, India.
+Analyze the following citizen grievance text and optional supporting image.
+The text may be written in ANY Indian language or script (${INDIAN_LANGUAGES}) or in English.
+Always translate non-English input into clear, grammatically correct English in the "translatedText" field.
+Respond STRICTLY as a valid JSON object — no markdown code blocks, no extra text.
+
+JSON Schema:
+{
+  "translatedText": "Full English translation of the citizen's input. If already in English, copy it unchanged.",
+  "summary": "One concise sentence summarising the core grievance or development request.",
+  "category": "Exactly one of: Roads, Water, Healthcare, Education, Sanitation, Street Lights, Employment, Agriculture, Public Safety, Environment.",
+  "detectedIssues": ["Specific infrastructure defects found in text or image, e.g. potholes, contaminated water, broken school wall"],
+  "explanation": "Professional 2-3 sentence explanation of why this issue warrants priority action, citing specific complaints and any visual evidence.",
+  "language": "Detected input language name in English, e.g. Telugu, Hindi, Tamil, English"
+}
+
+Citizen Request Text:
+"${text}"
+`;
 
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       let response;
