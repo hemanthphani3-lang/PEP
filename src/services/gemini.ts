@@ -199,11 +199,19 @@ export async function analyzeSubmission(
   });
 }
 
-// Transcribe audio using Gemini 2.5 Flash
+// Transcribe audio using Gemini 1.5 Flash (supports audio inlineData)
 export async function transcribeAudio(
-  base64Audio: string,
+  base64AudioWithPrefix: string,
   mimeType: string
 ): Promise<string> {
+  // Strip the data URL prefix (e.g. "data:audio/webm;base64,") — Gemini needs raw base64
+  const base64Audio = base64AudioWithPrefix.includes(",")
+    ? base64AudioWithPrefix.split(",")[1]
+    : base64AudioWithPrefix;
+
+  // Normalise MIME type — Gemini accepts audio/webm, audio/ogg, audio/mp4
+  const safeMime = mimeType.split(";")[0] || "audio/webm";
+
   let attempts = 0;
   const maxAttempts = ROTATION_KEYS.length;
 
@@ -212,40 +220,38 @@ export async function transcribeAudio(
     if (!key) break;
 
     try {
-      console.log(`Attempting Gemini Audio call with key index: ${currentRotationKeyIndex}`);
+      console.log(`Attempting Gemini Audio transcription (key index: ${currentRotationKeyIndex})`);
       const genAI = new GoogleGenerativeAI(key);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      // gemini-1.5-flash has reliable audio inlineData support
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-      const prompt = `
-      You are an expert multilingual speech-to-text translator.
-      Listen to this audio recording (which could be in English, Hindi, Telugu, Tamil, or any other Indian language) and translate it into clear, grammatically correct English (UK).
-      Provide ONLY the translated English transcription text. Do not write any explanations, greetings, or prefixes. If the audio is completely silent or unrecognizable, return exactly: "Audio transcription could not be recognized."
-      `;
+      const prompt = `You are an expert multilingual speech-to-text translator for Indian languages.
+Listen to this audio recording. It may be in English, Hindi, Telugu, Tamil, Kannada, Malayalam, or another Indian language.
+Translate and transcribe it into clear, grammatically correct English.
+Return ONLY the English transcription text — no explanations, no labels, no prefixes.
+If the audio is silent or unrecognisable, return exactly: "Audio transcription could not be recognized."`;
 
       const response = await model.generateContent([
-        prompt,
+        { text: prompt },
         {
           inlineData: {
-            mimeType: mimeType,
-            data: base64Audio
-          }
-        }
+            mimeType: safeMime,
+            data: base64Audio,
+          },
+        },
       ]);
 
-      const text = response.response.text();
-      if (text && text.trim()) {
-        return text.trim();
-      }
-      throw new Error("Empty response from Gemini audio parser");
+      const result = response.response.text()?.trim();
+      if (result) return result;
+      throw new Error("Empty response from Gemini");
 
-    } catch (err) {
-      console.warn(`Gemini audio transcribe key index ${currentRotationKeyIndex} failed. Rotating keys. Error:`, err);
+    } catch (err: any) {
+      console.warn(`Gemini audio key[${currentRotationKeyIndex}] failed:`, err?.message || err);
       currentRotationKeyIndex = (currentRotationKeyIndex + 1) % ROTATION_KEYS.length;
       attempts++;
     }
   }
 
-  // Fallback if all keys fail
-  console.warn("All Gemini API keys failed for audio. Falling back to default simulation transcription.");
-  return "The main access road in Srungavarapukota is heavily damaged due to the recent landslides. It needs immediate paving.";
+  console.error("All Gemini API keys failed for audio transcription.");
+  return "Audio transcription could not be recognized.";
 }

@@ -380,7 +380,13 @@ export default function SubmitRequest() {
     audioChunks.current = [];
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+
+      // Pick best supported MIME type
+      const preferredTypes = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg", "audio/mp4"];
+      const supportedMime = preferredTypes.find(t => MediaRecorder.isTypeSupported(t)) || "";
+      const mediaRecorder = new MediaRecorder(stream, supportedMime ? { mimeType: supportedMime } : undefined);
+      const recordingMime = mediaRecorder.mimeType || "audio/webm";
+
       mediaRecorderRef.current = mediaRecorder;
 
       mediaRecorder.ondataavailable = (event) => {
@@ -392,27 +398,21 @@ export default function SubmitRequest() {
       mediaRecorder.onstop = async () => {
         setIsTranscribing(true);
         try {
-          const audioBlob = new Blob(audioChunks.current, { type: "audio/webm" });
-          stream.getTracks().forEach(track => track.stop()); // Stop mic stream
+          const audioBlob = new Blob(audioChunks.current, { type: recordingMime });
+          stream.getTracks().forEach(track => track.stop());
 
           const base64Audio = await convertBlobToBase64(audioBlob);
-          const transcript = await transcribeAudio(base64Audio, "audio/webm");
+          // Pass the actual MIME type from MediaRecorder (not hardcoded)
+          const transcript = await transcribeAudio(base64Audio, recordingMime);
 
           if (transcript && transcript !== "Audio transcription could not be recognized.") {
             setText(transcript);
           } else {
-            // Fallback to preset if audio is silent
-            const preset = VOICE_PRESETS[selectedVoicePresetIndex];
-            setSelectedVoicePresetIndex((prev) => (prev + 1) % VOICE_PRESETS.length);
-            setText(preset.translated);
-            alert("No speech detected in your recording. Loaded voice preset demo instead.");
+            alert("No speech detected. Please speak clearly and try again.");
           }
         } catch (err) {
           console.error("Audio transcription error:", err);
-          const preset = VOICE_PRESETS[selectedVoicePresetIndex];
-          setSelectedVoicePresetIndex((prev) => (prev + 1) % VOICE_PRESETS.length);
-          setText(preset.translated);
-          alert("Audio transcription service failed. Loaded voice preset demo instead.");
+          alert("Voice transcription failed. Please check your internet connection and try again.");
         } finally {
           setIsTranscribing(false);
         }
@@ -433,9 +433,10 @@ export default function SubmitRequest() {
       }, 1000);
     } catch (err) {
       console.error("Mic access denied or error:", err);
-      alert("Microphone access is required to record voice messages.");
+      alert("Microphone access is required to record voice messages. Please allow microphone permission in your browser.");
     }
   };
+
 
   const stopRecording = () => {
     if (recordingTimer.current) clearInterval(recordingTimer.current);
