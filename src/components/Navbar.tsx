@@ -24,7 +24,7 @@ export default function Navbar() {
 
   const links = [
     { name: "Home", href: "/" },
-    { name: "Submit Suggestion", href: "/newsubmit" },
+    { name: "Submit Suggestion", href: "/submit" },
     { name: "MP Dashboard", href: "/dashboard" },
   ];
 
