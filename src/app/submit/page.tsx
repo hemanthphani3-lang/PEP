@@ -4,7 +4,8 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { DBService, getNearestVillage } from "@/services/db";
-import { analyzeSubmission, transcribeAudio } from "@/services/gemini";
+import { analyzeSubmission } from "@/services/gemini";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import { 
   PlusCircle, 
   Mic, 
@@ -267,12 +268,23 @@ export default function SubmitRequest() {
   // Interactive Map State
   const [mapHoveredVillage, setMapHoveredVillage] = useState<string | null>(null);
   
-  // Media Recorder State for voice notes
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [isTranscribing, setIsTranscribing] = useState(false);
   const [selectedVoicePresetIndex, setSelectedVoicePresetIndex] = useState(0);
-  const [audioData, setAudioData] = useState<string | null>(null);
+
+  const { 
+    text: speechText, 
+    isRecording, 
+    isTranscribing, 
+    recordingSeconds,
+    startRecording, 
+    stopRecording 
+  } = useSpeechRecognition();
+
+  // Update text when speechText changes
+  useEffect(() => {
+    if (speechText) {
+      setText(speechText);
+    }
+  }, [speechText]);
 
   // Success states
   const [isSuccess, setIsSuccess] = useState(false);
@@ -281,9 +293,6 @@ export default function SubmitRequest() {
   const [processingLogs, setProcessingLogs] = useState<string[]>([]);
   const [photoSource, setPhotoSource] = useState<"camera" | "gallery" | "sample" | null>(null);
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunks = useRef<Blob[]>([]);
-  const recordingTimer = useRef<NodeJS.Timeout | null>(null);
   const mapIframeRef = useRef<HTMLIFrameElement>(null);
 
   // Auto Geolocate on Component Mount
@@ -377,84 +386,6 @@ export default function SubmitRequest() {
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
-  };
-
-  const startRecording = async () => {
-    audioChunks.current = [];
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-      // Pick best supported MIME type
-      const preferredTypes = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg", "audio/mp4"];
-      const supportedMime = preferredTypes.find(t => MediaRecorder.isTypeSupported(t)) || "";
-      const mediaRecorder = new MediaRecorder(stream, supportedMime ? { mimeType: supportedMime } : undefined);
-      const recordingMime = mediaRecorder.mimeType || "audio/webm";
-
-      mediaRecorderRef.current = mediaRecorder;
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = async () => {
-        setIsTranscribing(true);
-        try {
-          const audioBlob = new Blob(audioChunks.current, { type: recordingMime });
-          stream.getTracks().forEach(track => track.stop());
-
-          const base64Audio = await convertBlobToBase64(audioBlob);
-          setAudioData(base64Audio);
-          
-          // Pass the actual MIME type from MediaRecorder (not hardcoded)
-          const transcript = await transcribeAudio(base64Audio, recordingMime);
-
-          if (transcript && transcript !== "Audio transcription could not be recognized.") {
-            setText(transcript);
-          } else {
-            // Fallback for hackathon demo if no API keys / no speech detected
-            const preset = VOICE_PRESETS[selectedVoicePresetIndex];
-            setSelectedVoicePresetIndex((prev) => (prev + 1) % VOICE_PRESETS.length);
-            setText(preset.translated);
-          }
-        } catch (err) {
-          console.error("Audio transcription error:", err);
-          // Fallback for hackathon demo if API fails
-          const preset = VOICE_PRESETS[selectedVoicePresetIndex];
-          setSelectedVoicePresetIndex((prev) => (prev + 1) % VOICE_PRESETS.length);
-          setText(preset.translated);
-        } finally {
-          setIsTranscribing(false);
-        }
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingSeconds(0);
-
-      recordingTimer.current = setInterval(() => {
-        setRecordingSeconds((prev) => {
-          if (prev >= 15) {
-            stopRecording();
-            return 15;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    } catch (err) {
-      console.error("Mic access denied or error:", err);
-      alert("Microphone access is required to record voice messages. Please allow microphone permission in your browser.");
-    }
-  };
-
-
-  const stopRecording = () => {
-    if (recordingTimer.current) clearInterval(recordingTimer.current);
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-    }
-    setIsRecording(false);
   };
 
   const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
