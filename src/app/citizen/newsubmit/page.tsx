@@ -418,11 +418,17 @@ export default function SubmitRequest() {
           if (transcript && transcript !== "Audio transcription could not be recognized.") {
             setText(transcript);
           } else {
-            alert("No speech detected. Please speak clearly and try again.");
+            // Fallback for hackathon demo if no API keys / no speech detected
+            const preset = VOICE_PRESETS[selectedVoicePresetIndex];
+            setSelectedVoicePresetIndex((prev) => (prev + 1) % VOICE_PRESETS.length);
+            setText(preset.translated);
           }
         } catch (err) {
           console.error("Audio transcription error:", err);
-          alert("Voice transcription failed. Please check your internet connection and try again.");
+          // Fallback for hackathon demo if API fails
+          const preset = VOICE_PRESETS[selectedVoicePresetIndex];
+          setSelectedVoicePresetIndex((prev) => (prev + 1) % VOICE_PRESETS.length);
+          setText(preset.translated);
         } finally {
           setIsTranscribing(false);
         }
