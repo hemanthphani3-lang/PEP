@@ -20,13 +20,18 @@ class PipelineSingleton {
 
 // Listen for messages from the main thread
 self.addEventListener('message', async (event) => {
-  const { audio, language } = event.data;
+  const { type, audio, language } = event.data;
 
   try {
     // We send progress updates to the main thread during download
     const transcriber = await PipelineSingleton.getInstance((x: any) => {
       self.postMessage({ status: 'progress', data: x });
     });
+
+    if (type === 'load') {
+      self.postMessage({ status: 'ready' });
+      return;
+    }
 
     self.postMessage({ status: 'ready' });
 

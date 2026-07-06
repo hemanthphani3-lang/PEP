@@ -35,6 +35,9 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
       type: 'module'
     });
 
+    // Start background download of the model immediately when the hook mounts
+    workerRef.current.postMessage({ type: 'load' });
+
     workerRef.current.onmessage = (event) => {
       const { status, text: resultText, data, error: err } = event.data;
 
