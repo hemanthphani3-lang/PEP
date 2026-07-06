@@ -142,13 +142,6 @@ export default function SuggestionsFeed() {
         {/* Navigation & Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
-            <Link 
-              href="/submit" 
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors mb-2 group"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-              Back to Citizen Portal
-            </Link>
             <h1 className="text-2xl md:text-3xl font-outfit font-extrabold text-slate-800 flex items-center gap-2">
               <span>Constituency Suggestion Feed</span>
               <span className="text-xs bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded border border-emerald-150 font-bold uppercase tracking-wider">
@@ -160,7 +153,7 @@ export default function SuggestionsFeed() {
             </p>
           </div>
           <Link
-            href="/submit"
+            href="/citizen/newsubmit"
             className="w-full sm:w-auto self-start md:self-auto bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-sm shadow-blue-200 text-center"
           >
             File New Grievance
