@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { DBService, getNearestVillage } from "@/services/db";
 import { analyzeSubmission, transcribeAudio } from "@/services/gemini";
@@ -238,6 +239,7 @@ const translations = {
 };
 
 export default function SubmitRequest() {
+  const router = useRouter();
   const [text, setText] = useState("");
   const [category, setCategory] = useState("Auto-Detect");
   const [imageUrl, setImageUrl] = useState("");
@@ -254,6 +256,14 @@ export default function SubmitRequest() {
   // Dynamic coordinates and UI elements
   useEffect(() => {
     setLang((localStorage.getItem("civicpulse_lang") as any) || "en");
+    
+    // Auto-fill phone from citizen session
+    const savedPhone = localStorage.getItem("civicpulse_citizen_phone");
+    if (savedPhone) {
+      setReporterPhone(savedPhone);
+    } else {
+      router.push("/login/citizen");
+    }
 
     const handleLangChange = () => {
       setLang((localStorage.getItem("civicpulse_lang") as any) || "en");
@@ -530,7 +540,7 @@ export default function SubmitRequest() {
 
   const handleConfirmSubmit = async () => {
     if (!reporterName.trim() || !reporterPhone.trim()) {
-      setPromptError("Please enter both your name and phone number.");
+      setPromptError("Please enter your name.");
       return;
     }
     setPromptError("");
@@ -1017,17 +1027,8 @@ export default function SubmitRequest() {
                   autoFocus
                 />
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Phone Number (Required)</label>
-                <input
-                  type="tel"
-                  placeholder="e.g. 9876543210"
-                  value={reporterPhone}
-                  onChange={(e) => setReporterPhone(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-medium"
-                />
-              </div>
+              {/* Phone number is auto-filled from session and hidden */}
+              <input type="hidden" value={reporterPhone} />
 
               {promptError && (
                 <div className="text-xs text-rose-600 bg-rose-50 px-3 py-2 rounded-lg border border-rose-100 flex items-center gap-1.5 font-medium">
