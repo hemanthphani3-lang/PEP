@@ -276,7 +276,7 @@ export default function LandingPage() {
 
             <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-4">
               <Link
-                href="/login/citizen"
+                href="/submit"
                 className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 sm:py-3.5 rounded-xl shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-sm font-outfit"
               >
                 <PlusCircle className="w-5 h-5" /> {copy.btnSubmit}

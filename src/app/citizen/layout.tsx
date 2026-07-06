@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const sidebarLinks = [
   { name: "My Submissions", href: "/citizen/my-submissions", icon: UserCircle },
-  { name: "Add Suggestion", href: "/citizen/submit", icon: PlusCircle },
+  { name: "Add Suggestion", href: "/submit", icon: PlusCircle },
   { name: "Review Public Feed", href: "/citizen/suggestions", icon: List },
 ];
 
