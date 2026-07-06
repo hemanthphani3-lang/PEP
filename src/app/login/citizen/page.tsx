@@ -88,6 +88,17 @@ export default function CitizenLogin() {
                   <>Get OTP <ArrowRight className="w-4 h-4" /></>
                 )}
               </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem("civicpulse_citizen_phone", phone || "9876543210");
+                  router.push("/citizen/my-submissions");
+                }}
+                className="w-full flex justify-center items-center gap-2 py-3 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 bg-white hover:bg-slate-50 transition-all duration-300 shadow-sm"
+              >
+                Bypass Auth (Quick Test)
+              </button>
             </motion.form>
           ) : (
             <motion.form 
