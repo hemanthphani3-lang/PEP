@@ -248,11 +248,18 @@ export default function SubmitRequest() {
   const [isNamePromptOpen, setIsNamePromptOpen] = useState(false);
   const [reporterName, setReporterName] = useState("");
   const [reporterPhone, setReporterPhone] = useState("");
+  const [promptError, setPromptError] = useState("");
   const [lang, setLang] = useState<"en" | "hi" | "te" | "ta">("en");
 
   // Dynamic coordinates and UI elements
   useEffect(() => {
     setLang((localStorage.getItem("civicpulse_lang") as any) || "en");
+    
+    // Auto-fill phone from citizen session
+    const savedPhone = localStorage.getItem("civicpulse_citizen_phone");
+    if (savedPhone) {
+      setReporterPhone(savedPhone);
+    }
 
     const handleLangChange = () => {
       setLang((localStorage.getItem("civicpulse_lang") as any) || "en");
@@ -528,8 +535,13 @@ export default function SubmitRequest() {
   };
 
   const handleConfirmSubmit = async () => {
+    if (!reporterName.trim() || !reporterPhone.trim()) {
+      setPromptError("Please enter your name.");
+      return;
+    }
+    setPromptError("");
     setIsNamePromptOpen(false);
-    const finalName = reporterName.trim() || "Anonymous Citizen";
+    const finalName = reporterName.trim();
 
     setIsProcessing(true);
     setProcessingStep(0);
@@ -1011,17 +1023,15 @@ export default function SubmitRequest() {
                   autoFocus
                 />
               </div>
+              {/* Phone number is auto-filled from session and hidden */}
+              <input type="hidden" value={reporterPhone} />
 
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Phone Number (Optional)</label>
-                <input
-                  type="tel"
-                  placeholder="e.g. 9876543210"
-                  value={reporterPhone}
-                  onChange={(e) => setReporterPhone(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-medium"
-                />
-              </div>
+              {promptError && (
+                <div className="text-xs text-rose-600 bg-rose-50 px-3 py-2 rounded-lg border border-rose-100 flex items-center gap-1.5 font-medium">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {promptError}
+                </div>
+              )}
               
               <div className="flex gap-2.5 pt-2">
                 <button
