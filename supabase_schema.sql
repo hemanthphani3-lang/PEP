@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS submissions (
   cluster_id      TEXT,
   village_name    TEXT NOT NULL DEFAULT 'Visakhapatnam East',
   language        TEXT NOT NULL DEFAULT 'English',
-  audio_url       TEXT
+  audio_url       TEXT,
+  phone_number    TEXT
 );
 
 -- 2. CLUSTERS TABLE

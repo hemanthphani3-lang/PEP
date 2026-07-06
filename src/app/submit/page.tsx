@@ -247,6 +247,7 @@ export default function SubmitRequest() {
   const [nearestVillageName, setNearestVillageName] = useState("Bhimili");
   const [isNamePromptOpen, setIsNamePromptOpen] = useState(false);
   const [reporterName, setReporterName] = useState("");
+  const [reporterPhone, setReporterPhone] = useState("");
   const [lang, setLang] = useState<"en" | "hi" | "te" | "ta">("en");
 
   // Dynamic coordinates and UI elements
@@ -581,7 +582,8 @@ export default function SubmitRequest() {
         latitude: lat,
         longitude: lng,
         language: aiResult.language,
-        audioUrl: audioData || undefined
+        audioUrl: audioData || undefined,
+        phoneNumber: reporterPhone || undefined
       });
 
       setIsProcessing(false);
@@ -1007,6 +1009,17 @@ export default function SubmitRequest() {
                   onChange={(e) => setReporterName(e.target.value)}
                   className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-medium"
                   autoFocus
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Phone Number (Optional)</label>
+                <input
+                  type="tel"
+                  placeholder="e.g. 9876543210"
+                  value={reporterPhone}
+                  onChange={(e) => setReporterPhone(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 font-medium"
                 />
               </div>
               
