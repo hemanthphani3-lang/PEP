@@ -5,6 +5,7 @@ import Link from "next/link";
 import { DBService, getNearestVillage } from "@/services/db";
 import { analyzeSubmission } from "@/services/gemini";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { AudioPlayer } from "@/components/AudioPlayer";
 import { 
   PlusCircle, 
   Mic, 
@@ -272,15 +273,18 @@ export default function SubmitRequest() {
 
   // Interactive Map State
   const [mapHoveredVillage, setMapHoveredVillage] = useState<string | null>(null);
-  
+  const [selectedVoicePresetIndex, setSelectedVoicePresetIndex] = useState(0);
+
   const { 
     text: speechText, 
     isRecording, 
     isTranscribing, 
     recordingSeconds,
     startRecording, 
-    stopRecording 
-  } = useSpeechRecognition();
+    stopRecording,
+    audioDataUrl,
+    reset
+  } = useSpeechRecognition(lang);
 
   // Update text when speechText changes
   useEffect(() => {
@@ -356,27 +360,6 @@ export default function SubmitRequest() {
   }, []);
 
   // Preset Rotator Trigger (MediaRecorder recording simulation helper)
-  const simulateVoiceInput = async () => {
-    setIsTranscribing(true);
-    
-    // Choose voice preset based on index
-    const preset = VOICE_PRESETS[selectedVoicePresetIndex];
-    
-    // Increment index for next time
-    setSelectedVoicePresetIndex((prev) => (prev + 1) % VOICE_PRESETS.length);
-
-    // Call Gemini 2.5 Flash translation model directly on preset text
-    try {
-      const result = await analyzeSubmission(preset.transcript);
-      setText(result.translatedText);
-    } catch (err) {
-      console.error("Preset transcription failed:", err);
-      // Fallback
-      setText(preset.translated);
-    } finally {
-      setIsTranscribing(false);
-    }
-  };
 
   const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -515,7 +498,7 @@ export default function SubmitRequest() {
         latitude: lat,
         longitude: lng,
         language: aiResult.language,
-        audioUrl: audioData || undefined,
+        audioUrl: audioDataUrl || undefined,
         phoneNumber: reporterPhone || undefined
       });
 
@@ -661,6 +644,12 @@ export default function SubmitRequest() {
                       </button>
                     )}
                   </div>
+                  {audioDataUrl && !isRecording && (
+                    <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-500">
+                      <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2 ml-1">Your Voice Note</p>
+                      <AudioPlayer src={audioDataUrl} fallbackDuration={recordingSeconds} />
+                    </div>
+                  )}
                 </div>
 
                 {/* 2. Geolocation Picker */}

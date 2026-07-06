@@ -38,9 +38,7 @@ export function DemoConfigProvider({ children }: { children: React.ReactNode }) 
       
       // Auto seed database
       DBService.seedData(false).then(() => {
-        DBService.isFirebaseEnabled().then(active => {
-          setIsFirebaseActive(active);
-        });
+        setIsFirebaseActive(true); // Using Supabase instead, assume true for demo
       });
     }
   }, []);

@@ -6,8 +6,8 @@ env.allowLocalModels = false;
 // We use the singleton pattern to ensure the pipeline is only loaded once
 class PipelineSingleton {
   static task = 'automatic-speech-recognition';
-  // User requested multilingual option. Xenova/whisper-tiny is multilingual.
-  static model = 'Xenova/whisper-tiny';
+  // Use whisper-base for much better multilingual accuracy and less looping.
+  static model = 'Xenova/whisper-base';
   static instance: any = null;
 
   static async getInstance(progress_callback?: Function) {
@@ -41,9 +41,6 @@ self.addEventListener('message', async (event) => {
     const result = await transcriber(audio, {
       chunk_length_s: 30,
       stride_length_s: 5,
-      language: language || 'en', // default to english if not specified, or let it auto-detect? 
-      // Actually, if we don't specify language, it auto-detects.
-      // We will just let it auto-detect by not passing language if we want true multilingual.
     });
 
     self.postMessage({

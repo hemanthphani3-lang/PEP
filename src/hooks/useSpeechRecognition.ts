@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { transcribeAudio } from '@/services/gemini';
 
 export interface UseSpeechRecognitionResult {
   text: string;
@@ -11,9 +12,10 @@ export interface UseSpeechRecognitionResult {
   error: string | null;
   mode: 'idle' | 'native' | 'whisper' | 'unsupported';
   progress: number;
+  audioDataUrl: string | null;
 }
 
-export function useSpeechRecognition(): UseSpeechRecognitionResult {
+export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRecognitionResult {
   const [text, setText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -21,41 +23,14 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'idle' | 'native' | 'whisper' | 'unsupported'>('idle');
   const [progress, setProgress] = useState<number>(0);
+  const [audioDataUrl, setAudioDataUrl] = useState<string | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const workerRef = useRef<Worker | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize Worker for Whisper fallback
   useEffect(() => {
-    // Create the worker
-    workerRef.current = new Worker(new URL('../workers/whisper.worker.ts', import.meta.url), {
-      type: 'module'
-    });
-
-    // Start background download of the model immediately when the hook mounts
-    workerRef.current.postMessage({ type: 'load' });
-
-    workerRef.current.onmessage = (event) => {
-      const { status, text: resultText, data, error: err } = event.data;
-
-      if (status === 'progress') {
-        if (data?.progress !== undefined) {
-          setProgress(data.progress);
-        }
-      } else if (status === 'ready') {
-        setProgress(100);
-      } else if (status === 'complete') {
-        setIsTranscribing(false);
-        setText(resultText);
-        setMode('whisper');
-      } else if (status === 'error') {
-        setIsTranscribing(false);
-        setError(err || 'Whisper transcription failed');
-      }
-    };
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
@@ -84,7 +59,6 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
     }
 
     return () => {
-      if (workerRef.current) workerRef.current.terminate();
       if (recognitionRef.current) recognitionRef.current.abort();
       if (timerRef.current) clearInterval(timerRef.current);
     };
@@ -92,6 +66,8 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
 
   const startRecording = useCallback(async () => {
     setError(null);
+    setAudioDataUrl(null);
+    audioChunksRef.current = [];
     setText('');
     setIsRecording(true);
     setRecordingSeconds(0);
@@ -127,6 +103,13 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
     if (recognitionRef.current && mode !== 'unsupported') {
       try {
         setMode('native');
+        const bcp47Map: Record<string, string> = {
+          en: 'en-US',
+          hi: 'hi-IN',
+          te: 'te-IN',
+          ta: 'ta-IN'
+        };
+        recognitionRef.current.lang = bcp47Map[preferredLang] || 'en-US';
         recognitionRef.current.start();
       } catch (err) {
         console.warn('Native speech already started or failed', err);
@@ -153,43 +136,48 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
       
-      // If we didn't get any text from Native Speech (or it failed), use Whisper Fallback
+      // We always want to capture the audio Blob to save it for playback, regardless of which speech engine runs.
       setTimeout(() => {
-        if (!text && audioChunksRef.current.length > 0 && workerRef.current) {
-          setMode('whisper');
+        if (audioChunksRef.current.length === 0) return;
+        
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        
+        const dataReader = new FileReader();
+        dataReader.onload = () => {
+          setAudioDataUrl(dataReader.result as string);
+        };
+        dataReader.readAsDataURL(audioBlob);
+
+        // Use Native Speech API (Chrome's Google Cloud STT) as PRIMARY for best Indian language accuracy.
+        // ONLY fallback to Gemini if Native speech completely failed to capture text.
+        if (!text) {
+          setMode('whisper'); // keeping state name for compatibility with UI
           setIsTranscribing(true);
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          
-          // Convert Blob to Float32Array for Whisper
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-            sampleRate: 16000 // Whisper requires 16kHz
-          });
           
           const reader = new FileReader();
           reader.onload = async () => {
             try {
-              const arrayBuffer = reader.result as ArrayBuffer;
-              const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-              const offlineContext = new OfflineAudioContext(1, audioBuffer.length, 16000);
-              const source = offlineContext.createBufferSource();
-              source.buffer = audioBuffer;
-              source.connect(offlineContext.destination);
-              source.start();
-              const renderedBuffer = await offlineContext.startRendering();
-              const float32Array = renderedBuffer.getChannelData(0);
-              
-              workerRef.current!.postMessage({ audio: float32Array });
+              const base64DataUrl = reader.result as string;
+              const transcription = await transcribeAudio(base64DataUrl, 'audio/webm', preferredLang);
+              if (transcription && transcription !== "Audio transcription could not be recognized.") {
+                setText(transcription);
+              } else {
+                setError('Could not recognize speech from audio.');
+              }
+              setIsTranscribing(false);
+              setMode('idle');
             } catch (err) {
-              console.error('Audio decoding error:', err);
+              console.error('Gemini audio transcription error:', err);
               setError('Failed to process audio for fallback transcription.');
               setIsTranscribing(false);
+              setMode('idle');
             }
           };
-          reader.readAsArrayBuffer(audioBlob);
+          reader.readAsDataURL(audioBlob);
         }
       }, 500); // Give native API half a second to fire final onresult
     }
-  }, [text]);
+  }, [text, progress]);
 
   const reset = () => {
     setText('');
@@ -197,6 +185,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
     setMode('idle');
     setProgress(0);
     setIsTranscribing(false);
+    setAudioDataUrl(null);
   };
 
   return {
@@ -209,6 +198,7 @@ export function useSpeechRecognition(): UseSpeechRecognitionResult {
     reset,
     error,
     mode,
-    progress
+    progress,
+    audioDataUrl
   };
 }

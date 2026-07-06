@@ -142,7 +142,8 @@ export async function analyzeSubmission(
       const prompt = `You are the core analysis engine of CivicPulse AI, an MP development intelligence dashboard for Visakhapatnam, India.
 Analyze the following citizen grievance text and optional supporting image.
 The text may be written in ANY Indian language or script (${INDIAN_LANGUAGES}) or in English.
-Always translate non-English input into clear, grammatically correct English in the "translatedText" field.
+Your primary job is to provide an EXTREMELY accurate, highly nuanced, and context-aware English translation in the "translatedText" field. 
+Capture the raw emotion, urgency, and specific local context of the citizen's request. Do not just blindly translate word-for-word; be creative in capturing the exact intent.
 Respond STRICTLY as a valid JSON object — no markdown code blocks, no extra text.
 
 JSON Schema:
@@ -205,7 +206,8 @@ Citizen Request Text:
 // Transcribe audio using Gemini 1.5 Flash (supports audio inlineData)
 export async function transcribeAudio(
   base64AudioWithPrefix: string,
-  mimeType: string
+  mimeType: string,
+  language: string = 'en'
 ): Promise<string> {
   // Strip the data URL prefix (e.g. "data:audio/webm;base64,") — Gemini needs raw base64
   const base64Audio = base64AudioWithPrefix.includes(",")
@@ -218,6 +220,14 @@ export async function transcribeAudio(
   let attempts = 0;
   const maxAttempts = ROTATION_KEYS.length;
 
+  const langMap: Record<string, string> = {
+    en: "English",
+    hi: "Hindi",
+    te: "Telugu",
+    ta: "Tamil"
+  };
+  const targetLang = langMap[language] || "English";
+
   while (attempts < maxAttempts) {
     const key = getGeminiApiKey();
     if (!key) break;
@@ -228,10 +238,10 @@ export async function transcribeAudio(
       // gemini-1.5-flash has reliable audio inlineData support
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-      const prompt = `You are an expert multilingual speech-to-text translator for Indian languages.
-Listen to this audio recording. It may be in English, Hindi, Telugu, Tamil, Kannada, Malayalam, or another Indian language.
-Translate and transcribe it into clear, grammatically correct English.
-Return ONLY the English transcription text — no explanations, no labels, no prefixes.
+      const prompt = `You are an expert multilingual speech-to-text transcriber for Indian languages.
+Listen to this audio recording. The speaker is speaking in ${targetLang}.
+Transcribe the audio accurately into ${targetLang} text using the native script of ${targetLang} (e.g., Telugu script for Telugu, Devanagari script for Hindi, Latin/English script for English).
+Return ONLY the transcribed ${targetLang} text — no explanations, no labels, no translations, no prefixes.
 If the audio is silent or unrecognisable, return exactly: "Audio transcription could not be recognized."`;
 
       const response = await model.generateContent([
