@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS submissions (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   cluster_id      TEXT,
   village_name    TEXT NOT NULL DEFAULT 'Visakhapatnam East',
-  language        TEXT NOT NULL DEFAULT 'English'
+  language        TEXT NOT NULL DEFAULT 'English',
+  audio_url       TEXT
 );
 
 -- 2. CLUSTERS TABLE

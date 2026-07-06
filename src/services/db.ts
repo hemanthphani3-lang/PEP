@@ -20,6 +20,7 @@ export interface Submission {
   clusterId?: string;
   villageName: string;
   language: string;
+  audioUrl?: string;
 }
 
 export interface Cluster {
@@ -451,7 +452,8 @@ function mapSubmissionFromPG(s: any): Submission {
     createdAt: s.created_at,
     clusterId: s.cluster_id,
     villageName: s.village_name,
-    language: s.language
+    language: s.language,
+    audioUrl: s.audio_url
   };
 }
 
@@ -643,7 +645,8 @@ export const DBService = {
             created_at: newSub.createdAt,
             cluster_id: newSub.clusterId ?? null,
             village_name: newSub.villageName,
-            language: newSub.language
+            language: newSub.language,
+            audio_url: newSub.audioUrl ?? null
           })
         );
         if (error) throw error;

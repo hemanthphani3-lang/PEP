@@ -272,6 +272,12 @@ export default function SuggestionsFeed() {
                               </p>
                             </div>
                           )}
+                          {sub.audioUrl && (
+                            <div className="mt-3">
+                              <span className="text-[10px] font-bold text-slate-500 block mb-1">Original Voice Recording</span>
+                              <audio controls src={sub.audioUrl} className="w-full h-8" />
+                            </div>
+                          )}
                         </div>
 
                         {sub.imageUrl && (

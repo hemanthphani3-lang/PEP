@@ -270,6 +270,7 @@ export default function SubmitRequest() {
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [selectedVoicePresetIndex, setSelectedVoicePresetIndex] = useState(0);
+  const [audioData, setAudioData] = useState<string | null>(null);
 
   // Success states
   const [isSuccess, setIsSuccess] = useState(false);
@@ -402,6 +403,8 @@ export default function SubmitRequest() {
           stream.getTracks().forEach(track => track.stop());
 
           const base64Audio = await convertBlobToBase64(audioBlob);
+          setAudioData(base64Audio);
+          
           // Pass the actual MIME type from MediaRecorder (not hardcoded)
           const transcript = await transcribeAudio(base64Audio, recordingMime);
 
@@ -577,7 +580,8 @@ export default function SubmitRequest() {
         imageUrl: imageFile || imageUrl || "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=800&auto=format&fit=crop&q=60", // default
         latitude: lat,
         longitude: lng,
-        language: aiResult.language
+        language: aiResult.language,
+        audioUrl: audioData || undefined
       });
 
       setIsProcessing(false);
