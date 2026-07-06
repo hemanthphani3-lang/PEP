@@ -612,6 +612,28 @@ export const DBService = {
   },
 
   // ── Add new submission (Supabase primary, localStorage backup) ────────────
+  async getSubmissionsByPhone(phoneNumber: string): Promise<Submission[]> {
+    try {
+      const supabase = await getSupabase();
+      if (!supabase) return [];
+      const { data, error } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('phone_number', phoneNumber)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching submissions by phone:", error);
+        return [];
+      }
+
+      return (data || []).map(mapSubmissionFromPG);
+    } catch (err) {
+      console.error("Failed to fetch submissions by phone:", err);
+      return [];
+    }
+  },
+
   async addSubmission(sub: Omit<Submission, "submissionId" | "createdAt" | "villageName">): Promise<Submission> {
     const newSub: Submission = {
       ...sub,

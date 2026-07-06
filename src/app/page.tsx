@@ -276,7 +276,7 @@ export default function LandingPage() {
 
             <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-4">
               <Link
-                href="/submit"
+                href="/login/citizen"
                 className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 sm:py-3.5 rounded-xl shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-sm font-outfit"
               >
                 <PlusCircle className="w-5 h-5" /> {copy.btnSubmit}
@@ -365,7 +365,7 @@ export default function LandingPage() {
               </p>
               <div className="pt-2">
                 <Link
-                  href="/suggestions"
+                  href="/login/citizen"
                   className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold px-6 py-3 rounded-xl text-xs transition-colors shadow-sm font-outfit"
                 >
                   {copy.btnExplore} <ChevronRight className="w-4 h-4" />
@@ -414,7 +414,7 @@ export default function LandingPage() {
 
               <div className="space-y-3">
                 <Link
-                  href="/suggestions"
+                  href="/login/citizen"
                   className="flex items-center p-4 border border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-2xl transition-all duration-300 group cursor-pointer"
                 >
                   <div className="w-12 h-12 bg-slate-100 group-hover:bg-blue-100 text-slate-600 group-hover:text-blue-600 rounded-xl flex items-center justify-center mr-4 transition-colors">
@@ -427,7 +427,7 @@ export default function LandingPage() {
                 </Link>
 
                 <Link
-                  href="/dashboard"
+                  href="/login/mp"
                   className="flex items-center p-4 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 rounded-2xl transition-all duration-300 group cursor-pointer"
                 >
                   <div className="w-12 h-12 bg-slate-100 group-hover:bg-emerald-100 text-slate-600 group-hover:text-emerald-600 rounded-xl flex items-center justify-center mr-4 transition-colors">

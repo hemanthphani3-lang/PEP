@@ -28,7 +28,8 @@ export default function CitizenLogin() {
     if (otp.length < 4) return;
     setIsLoading(true);
     setTimeout(() => {
-      router.push("/suggestions");
+      localStorage.setItem("civicpulse_citizen_phone", phone);
+      router.push("/citizen/my-submissions");
     }, 1500);
   };
 
