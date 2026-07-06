@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import { DBService, Submission, Cluster } from "@/services/db";
-import Navbar from "@/components/Navbar";
 import { 
   ArrowLeft, 
   MapPin, 
@@ -139,8 +138,6 @@ export default function SuggestionsFeed() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
-      <Navbar />
-
       <main className="flex-grow max-w-7xl mx-auto w-full px-4 py-8">
         {/* Navigation & Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
