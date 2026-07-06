@@ -365,7 +365,7 @@ export default function LandingPage() {
               </p>
               <div className="pt-2">
                 <Link
-                  href="/dashboard/priorities"
+                  href="/public-priorities"
                   className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold px-6 py-3 rounded-xl text-xs transition-colors shadow-sm font-outfit"
                 >
                   {copy.btnExplore} <ChevronRight className="w-4 h-4" />
