@@ -15,9 +15,12 @@ import {
   CheckCircle,
   Clock,
   Shield,
-  Users
+  Users,
+  UserCircle,
+  Briefcase,
+  X
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 const translations = {
   en: {
@@ -186,6 +189,7 @@ const translations = {
 
 export default function LandingPage() {
   const [lang, setLang] = useState<"en" | "hi" | "te" | "ta">("en");
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     setLang((localStorage.getItem("civicpulse_lang") as any) || "en");
@@ -277,12 +281,12 @@ export default function LandingPage() {
               >
                 <PlusCircle className="w-5 h-5" /> {copy.btnSubmit}
               </Link>
-              <Link
-                href="/dashboard"
+              <button
+                onClick={() => setIsLoginModalOpen(true)}
                 className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-8 py-4 sm:py-3.5 rounded-xl transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-sm border border-slate-200 font-outfit"
               >
                 {copy.btnDashboard} <ChevronRight className="w-4 h-4" />
-              </Link>
+              </button>
             </div>
           </motion.div>
         </div>
@@ -385,6 +389,60 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Login Selection Modal */}
+      <AnimatePresence>
+        {isLoginModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl relative"
+            >
+              <button 
+                onClick={() => setIsLoginModalOpen(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="text-center mb-6 mt-2">
+                <h3 className="text-xl font-bold text-slate-800 font-outfit">Select Profile</h3>
+                <p className="text-xs text-slate-500 mt-1">Choose how you want to interact with CivicPulse.</p>
+              </div>
+
+              <div className="space-y-3">
+                <Link
+                  href="/suggestions"
+                  className="flex items-center p-4 border border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-2xl transition-all duration-300 group cursor-pointer"
+                >
+                  <div className="w-12 h-12 bg-slate-100 group-hover:bg-blue-100 text-slate-600 group-hover:text-blue-600 rounded-xl flex items-center justify-center mr-4 transition-colors">
+                    <UserCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 font-outfit group-hover:text-blue-700 transition-colors">Citizen</h4>
+                    <p className="text-xs text-slate-500 leading-tight mt-0.5">View public feed and submit new grievances</p>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/dashboard"
+                  className="flex items-center p-4 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 rounded-2xl transition-all duration-300 group cursor-pointer"
+                >
+                  <div className="w-12 h-12 bg-slate-100 group-hover:bg-emerald-100 text-slate-600 group-hover:text-emerald-600 rounded-xl flex items-center justify-center mr-4 transition-colors">
+                    <Briefcase className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-800 font-outfit group-hover:text-emerald-700 transition-colors">Member of Parliament</h4>
+                    <p className="text-xs text-slate-500 leading-tight mt-0.5">Access priority algorithms & secure analytics</p>
+                  </div>
+                </Link>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
