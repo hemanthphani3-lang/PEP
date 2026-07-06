@@ -2,8 +2,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import Navbar from "@/components/Navbar";
 import { DBService, getNearestVillage } from "@/services/db";
 import { analyzeSubmission, transcribeAudio } from "@/services/gemini";
 import { 
@@ -239,7 +237,6 @@ const translations = {
 };
 
 export default function SubmitRequest() {
-  const router = useRouter();
   const [text, setText] = useState("");
   const [category, setCategory] = useState("Auto-Detect");
   const [imageUrl, setImageUrl] = useState("");
@@ -261,8 +258,6 @@ export default function SubmitRequest() {
     const savedPhone = localStorage.getItem("civicpulse_citizen_phone");
     if (savedPhone) {
       setReporterPhone(savedPhone);
-    } else {
-      router.push("/login/citizen");
     }
 
     const handleLangChange = () => {
@@ -646,8 +641,6 @@ export default function SubmitRequest() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
-      <Navbar />
-
       <main className="flex-1 w-full px-3 sm:px-4 py-6 sm:py-10">
         <div className="max-w-4xl mx-auto">
         
