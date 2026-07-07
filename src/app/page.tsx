@@ -21,6 +21,7 @@ import {
   X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { langTranslations } from "@/utils/langTranslations";
 
 const translations = {
   en: {
@@ -32,7 +33,7 @@ const translations = {
     featuresTitle: "Platform Features Built on Google Tech",
     featuresSub: "Leveraging advanced Gemini 2.5 Flash and Geolocation APIs to automate and refine local development workflows.",
     stepsTitle: "The Intelligence Pipeline",
-    stepsSub: "How CivicPulse AI ingests raw unstructured voice data and resolves them into structured prioritizations.",
+    stepsSub: "How Pragathi Path ingests raw unstructured voice data and resolves them into structured prioritizations.",
     impactTitle: "Designed for Transparency and Speed",
     impactDesc: "By bypassing bureaucratic paperwork, we ensure that underrepresented communities have a voice, and that government investments are optimized where need is highest.",
     btnExplore: "Explore prioritizations",
@@ -201,7 +202,11 @@ export default function LandingPage() {
     return () => window.removeEventListener("language-change", handleLangChange);
   }, []);
 
-  const copy = translations[lang] || translations.en;
+  const copy = {
+    ...translations.en,
+    ...(translations[lang as keyof typeof translations] || {}),
+    ...(langTranslations[lang] || {})
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -217,12 +222,12 @@ export default function LandingPage() {
   };
 
   const features = [
-    { icon: Mic, title: copy.f1Title, description: copy.f1Desc },
-    { icon: Layers, title: copy.f2Title, description: copy.f2Desc },
-    { icon: MapPin, title: copy.f3Title, description: copy.f3Desc },
+    { icon: Mic,        title: copy.f1Title, description: copy.f1Desc },
+    { icon: Layers,     title: copy.f2Title, description: copy.f2Desc },
+    { icon: MapPin,     title: copy.f3Title, description: copy.f3Desc },
     { icon: TrendingUp, title: copy.f4Title, description: copy.f4Desc },
-    { icon: Database, title: copy.f5Title, description: copy.f5Desc },
-    { icon: ImageIcon, title: copy.f6Title, description: copy.f6Desc }
+    { icon: Database,   title: copy.f5Title, description: copy.f5Desc },
+    { icon: ImageIcon,  title: copy.f6Title, description: copy.f6Desc },
   ];
 
   const steps = [
@@ -231,7 +236,7 @@ export default function LandingPage() {
     { number: "03", title: copy.s3Title, desc: copy.s3Desc },
     { number: "04", title: copy.s4Title, desc: copy.s4Desc },
     { number: "05", title: copy.s5Title, desc: copy.s5Desc },
-    { number: "06", title: copy.s6Title, desc: copy.s6Desc }
+    { number: "06", title: copy.s6Title, desc: copy.s6Desc },
   ];
 
   const metrics = [
@@ -243,86 +248,130 @@ export default function LandingPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50">
-      <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-14 sm:py-20 lg:py-28 dot-grid border-b border-slate-200/50 bg-white">
-        <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/40 via-transparent to-emerald-50/30 pointer-events-none" />
-        
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <motion.div 
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center max-w-4xl mx-auto"
-          >
-            {/* Tagline pill */}
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100 mb-6 font-outfit">
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" /> {copy.badge}
-            </span>
+      {/* ───────────────────────────────────────────────────
+           HERO WRAPPER — one shared background for
+           the Navbar + Hero section so they form a
+           single seamless cinematic full-bleed banner.
+      ─────────────────────────────────────────────────── */}
+      <div className="relative">
+        {/* Shared crowd background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{ backgroundImage: "url('/hero-crowd.jpg')" }}
+        />
+        {/* Multi-layer dark overlay for legibility */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/85 via-slate-800/72 to-slate-900/88" />
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-950/40 via-transparent to-indigo-950/40" />
+        {/* Subtle dot-grid texture */}
+        <div className="absolute inset-0 dot-grid opacity-15" />
 
-            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-outfit font-extrabold text-slate-800 tracking-tight leading-tight">
-              {copy.heroTitle.split(" ").map((w, idx) => {
-                if (w.toLowerCase() === "data-driven" || w.includes("డేటా") || w.includes("டேட்டா") || w.includes("डेटा-संचालित")) {
-                  return <span key={idx} className="bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">{w} </span>;
-                }
-                return w + " ";
-              })}
-            </h1>
-            
-            <p className="mt-4 sm:mt-6 text-base sm:text-xl text-slate-500 max-w-2xl mx-auto font-sans leading-relaxed">
-              {copy.heroDesc}
-            </p>
-
-            <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-4">
-              <Link
-                href="/submit"
-                className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-4 sm:py-3.5 rounded-xl shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-sm font-outfit"
-              >
-                <PlusCircle className="w-5 h-5" /> {copy.btnSubmit}
-              </Link>
-              <button
-                onClick={() => setIsLoginModalOpen(true)}
-                className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-8 py-4 sm:py-3.5 rounded-xl transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-sm border border-slate-200 font-outfit"
-              >
-                {copy.btnDashboard} <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </motion.div>
+        {/* Navbar sits INSIDE the wrapper → transparent over the crowd */}
+        <div className="relative z-10">
+          <Navbar transparent />
         </div>
-      </section>
 
-      {/* Features Section */}
-      <section className="py-14 sm:py-20 bg-slate-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl font-outfit font-extrabold text-slate-800">
-              {copy.featuresTitle}
-            </h2>
-            <p className="mt-3 text-slate-500 text-sm">
-              {copy.featuresSub}
-            </p>
+        {/* Hero content */}
+        <section className="relative z-10 overflow-hidden py-20 sm:py-28 lg:py-36">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="text-center max-w-4xl mx-auto"
+            >
+              {/* Tagline pill */}
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/15 text-white border border-white/25 backdrop-blur-sm mb-6 font-outfit">
+                <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> {copy.badge}
+              </span>
+
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-outfit font-extrabold text-white tracking-tight leading-tight drop-shadow-xl">
+                {copy.heroTitle.split(" ").map((w, idx) => {
+                  if (w.toLowerCase() === "data-driven" || w.includes("డేటా") || w.includes("டேட்டா") || w.includes("डेटा-संचालित")) {
+                    return <span key={idx} className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">{w} </span>;
+                  }
+                  return w + " ";
+                })}
+              </h1>
+
+              <p className="mt-4 sm:mt-6 text-base sm:text-lg text-slate-200 max-w-2xl mx-auto font-sans leading-relaxed drop-shadow">
+                {copy.heroDesc}
+              </p>
+
+              <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row justify-center items-stretch sm:items-center gap-3 sm:gap-4">
+                <Link
+                  href="/submit"
+                  className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-8 py-4 sm:py-3.5 rounded-xl shadow-lg shadow-blue-900/50 hover:shadow-xl hover:shadow-blue-800/60 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-sm font-outfit border border-blue-400/30"
+                >
+                  <PlusCircle className="w-5 h-5" /> {copy.btnSubmit}
+                </Link>
+                <button
+                  onClick={() => setIsLoginModalOpen(true)}
+                  className="flex items-center justify-center gap-2 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-bold px-8 py-4 sm:py-3.5 rounded-xl transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 text-sm border border-white/30 font-outfit"
+                >
+                  {copy.btnDashboard} <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Patriotic tricolor accent */}
+              <div className="mt-12 flex items-center justify-center gap-1.5 opacity-60">
+                <div className="h-1 w-16 rounded-full bg-orange-400" />
+                <div className="h-1 w-16 rounded-full bg-white" />
+                <div className="h-1 w-16 rounded-full bg-green-500" />
+              </div>
+            </motion.div>
           </div>
+        </section>
+      </div> {/* end hero wrapper */}
 
-          <motion.div 
+
+      {/* ── FEATURES SECTION ─────────────────────────────── */}
+      <section className="py-16 sm:py-24 bg-slate-50 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center max-w-2xl mx-auto mb-12 sm:mb-16"
+          >
+            <h2 className="text-2xl sm:text-3xl font-outfit font-extrabold text-slate-800">{copy.featuresTitle}</h2>
+            <p className="mt-3 text-slate-500 text-sm">{copy.featuresSub}</p>
+          </motion.div>
+
+          <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            viewport={{ once: true, margin: "-80px" }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             {features.map((feature, i) => (
               <motion.div
                 key={i}
                 variants={itemVariants}
-                className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-300 group flex flex-col justify-between"
+                whileHover={{ y: -6, scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="relative bg-white rounded-2xl p-6 border border-slate-200/80 shadow-sm hover:shadow-xl hover:border-blue-200 transition-all duration-300 cursor-default overflow-hidden group"
               >
-                <div>
-                  <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-fit group-hover:scale-110 transition-transform duration-300">
+                {/* Glow blob */}
+                <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-2xl bg-blue-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+                <div className="relative z-10">
+                  <motion.div
+                    whileHover={{ scale: 1.15, rotate: 5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                    className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-fit"
+                  >
                     <feature.icon className="w-6 h-6" />
-                  </div>
-                  <h3 className="mt-5 text-base font-bold text-slate-800 font-outfit">{feature.title}</h3>
+                  </motion.div>
+                  <h3 className="mt-4 text-base font-bold text-slate-800 font-outfit group-hover:text-blue-700 transition-colors duration-300">{feature.title}</h3>
                   <p className="mt-2 text-xs text-slate-500 leading-relaxed">{feature.description}</p>
+                </div>
+
+                {/* Bottom accent bar slides in on hover */}
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 overflow-hidden rounded-b-2xl">
+                  <div className="h-full w-full bg-blue-500 -translate-x-full group-hover:translate-x-0 transition-transform duration-300 ease-out" />
                 </div>
               </motion.div>
             ))}
@@ -330,62 +379,114 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Flow Steps Section */}
+
+      {/* ── INTELLIGENCE PIPELINE SECTION ─────────────────── */}
       <section className="py-14 sm:py-20 bg-white border-y border-slate-200/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-center max-w-2xl mx-auto mb-10 sm:mb-14"
+          >
             <h2 className="text-2xl sm:text-3xl font-outfit font-extrabold text-slate-800">{copy.stepsTitle}</h2>
-            <p className="mt-3 text-slate-500 text-sm">
-              {copy.stepsSub}
-            </p>
-          </div>
+            <p className="mt-3 text-slate-500 text-sm">{copy.stepsSub}</p>
+          </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-80px" }}
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
             {steps.map((step, i) => (
-              <div key={i} className="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 hover:shadow-sm transition-all duration-300 space-y-3">
-                <span className="text-3xl font-black text-blue-100 block font-outfit leading-none">{step.number}</span>
-                <h3 className="text-sm font-bold text-slate-800 font-outfit">{step.title}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">{step.desc}</p>
-              </div>
+              <motion.div
+                key={i}
+                variants={itemVariants}
+                whileHover={{ y: -6, scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="group bg-slate-50 hover:bg-white p-6 rounded-2xl border border-slate-200/80 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-50 transition-colors duration-300 space-y-3 cursor-default relative overflow-hidden"
+              >
+                {/* Subtle glow on hover */}
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/0 to-indigo-50/0 group-hover:from-blue-50/60 group-hover:to-indigo-50/40 transition-all duration-500 pointer-events-none rounded-2xl" />
+
+                <span className="text-4xl font-black text-blue-100 group-hover:text-blue-200 block font-outfit leading-none transition-colors duration-300 relative z-10">
+                  {step.number}
+                </span>
+                <h3 className="text-sm font-bold text-slate-800 font-outfit group-hover:text-blue-700 transition-colors duration-300 relative z-10">
+                  {step.title}
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed relative z-10">
+                  {step.desc}
+                </p>
+
+                {/* Animated left accent bar */}
+                <motion.div
+                  className="absolute left-0 top-4 bottom-4 w-0.5 bg-blue-500 rounded-full origin-top"
+                  initial={{ scaleY: 0 }}
+                  whileHover={{ scaleY: 1 }}
+                  transition={{ duration: 0.25 }}
+                />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Impact Section */}
-      <section className="py-14 sm:py-20 bg-slate-50">
+      {/* ── IMPACT / METRICS SECTION ─────────────────────── */}
+      <section className="py-16 sm:py-24 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 sm:gap-12 items-center">
-            <div className="lg:col-span-5 space-y-5 sm:space-y-6">
-              <h2 className="text-2xl sm:text-4xl font-outfit font-extrabold text-slate-800 tracking-tight leading-tight">
-                {copy.impactTitle}
-              </h2>
-              <p className="text-slate-500 leading-relaxed text-sm">
-                {copy.impactDesc}
-              </p>
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="lg:col-span-5 space-y-5 sm:space-y-6"
+            >
+              <h2 className="text-2xl sm:text-4xl font-outfit font-extrabold text-slate-800 tracking-tight leading-tight">{copy.impactTitle}</h2>
+              <p className="text-slate-500 leading-relaxed text-sm">{copy.impactDesc}</p>
               <div className="pt-2">
-                <Link
-                  href="/public-priorities"
-                  className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold px-6 py-3 rounded-xl text-xs transition-colors shadow-sm font-outfit"
-                >
-                  {copy.btnExplore} <ChevronRight className="w-4 h-4" />
-                </Link>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Link
+                    href="/public-priorities"
+                    className="inline-flex items-center gap-1.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold px-6 py-3 rounded-xl text-xs transition-all duration-300 shadow-sm hover:shadow-md font-outfit"
+                  >
+                    {copy.btnExplore} <ChevronRight className="w-4 h-4" />
+                  </Link>
+                </motion.div>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="lg:col-span-7 grid grid-cols-2 gap-4 sm:gap-6">
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+              className="lg:col-span-7 grid grid-cols-2 gap-4 sm:gap-6"
+            >
               {metrics.map((metric, i) => (
-                <div key={i} className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-150 shadow-sm flex flex-col justify-between min-h-[8rem] sm:h-40">
+                <motion.div
+                  key={i}
+                  variants={itemVariants}
+                  whileHover={{ y: -6, scale: 1.02 }}
+                  className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-150 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between min-h-[8rem] sm:h-40 cursor-default group"
+                >
                   <div className="flex items-center justify-between">
                     <span className="text-3xl font-extrabold text-slate-800 font-outfit">{metric.value}</span>
-                    <div className={`p-2.5 rounded-xl ${metric.color}`}>
+                    <motion.div
+                      whileHover={{ rotate: 15, scale: 1.15 }}
+                      className={`p-2.5 rounded-xl ${metric.color} transition-all duration-300`}
+                    >
                       <metric.icon className="w-5 h-5" />
-                    </div>
+                    </motion.div>
                   </div>
-                  <span className="text-sm font-semibold text-slate-600 leading-tight">{metric.label}</span>
-                </div>
+                  <span className="text-sm font-semibold text-slate-600 leading-tight group-hover:text-slate-800 transition-colors">{metric.label}</span>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -409,7 +510,7 @@ export default function LandingPage() {
 
               <div className="text-center mb-6 mt-2">
                 <h3 className="text-xl font-bold text-slate-800 font-outfit">Select Profile</h3>
-                <p className="text-xs text-slate-500 mt-1">Choose how you want to interact with CivicPulse.</p>
+                <p className="text-xs text-slate-500 mt-1">Choose how you want to interact with Pragathi Path.</p>
               </div>
 
               <div className="space-y-3">
@@ -443,6 +544,74 @@ export default function LandingPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Premium Footer */}
+      <footer className="bg-slate-900 text-slate-400 border-t border-slate-800 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 md:gap-12">
+            
+            {/* Left branding */}
+            <div className="md:col-span-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <img 
+                  src="/logo.png" 
+                  alt="Pragathi Path Logo" 
+                  className="h-8 w-auto object-contain"
+                />
+                <span className="font-outfit font-bold text-base tracking-tight text-white">
+                  Pragathi Path
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
+                An advanced multilingual intelligence platform assisting Members of Parliament with geo-spatial priority tracking, census correlation, and administrative project management.
+              </p>
+            </div>
+
+            {/* Middle links */}
+            <div className="grid grid-cols-2 gap-8 md:col-span-4">
+              <div className="space-y-3">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Platform</span>
+                <ul className="space-y-2 text-xs">
+                  <li><Link href="/" className="hover:text-white transition-colors">Home</Link></li>
+                  <li><Link href="/how-it-works" className="hover:text-white transition-colors">How It Works</Link></li>
+                  <li><Link href="/submit" className="hover:text-white transition-colors">Submit Suggestion</Link></li>
+                  <li><Link href="/contact" className="hover:text-white transition-colors">Contact Support</Link></li>
+                </ul>
+              </div>
+              <div className="space-y-3">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Portals</span>
+                <ul className="space-y-2 text-xs text-left">
+                  <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-white transition-colors text-left">Citizen Login</button></li>
+                  <li><button onClick={() => setIsLoginModalOpen(true)} className="hover:text-white transition-colors text-left">MP Office Portal</button></li>
+                </ul>
+              </div>
+            </div>
+
+            {/* Right support contacts */}
+            <div className="md:col-span-3 space-y-3">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Technical Support</span>
+              <ul className="space-y-2 text-xs font-mono text-left">
+                <li><a href="mailto:hemanthphani3@gmail.com" className="hover:text-white transition-colors block truncate">hemanthphani3@gmail.com</a></li>
+                <li><a href="mailto:sananthkumar3@gmail.com" className="hover:text-white transition-colors block truncate">sananthkumar3@gmail.com</a></li>
+                <li><a href="mailto:nandalaala99@gmail.com" className="hover:text-white transition-colors block truncate">nandalaala99@gmail.com</a></li>
+              </ul>
+            </div>
+
+          </div>
+
+          <div className="border-t border-slate-800 mt-12 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[10px] text-slate-500 font-semibold">
+            <span>© 2026 Pragathi Path. All rights reserved. Designed for Visakhapatnam Constituency.</span>
+            <div className="flex gap-4">
+              <Link href="/contact" className="hover:text-slate-400 transition-colors">Report Technical Bug</Link>
+              <span>•</span>
+              <button onClick={() => setIsLoginModalOpen(true)} className="hover:text-slate-400 transition-colors">MP Portal</button>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
+
+
+

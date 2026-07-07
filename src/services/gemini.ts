@@ -268,3 +268,52 @@ If the audio is silent or unrecognisable, return exactly: "Audio transcription c
   console.error("All Gemini API keys failed for audio transcription.");
   return "Audio transcription could not be recognized.";
 }
+
+// Generate an AI explanation for a priority cluster
+export async function generatePriorityExplanation(
+  villageName: string,
+  category: string,
+  citizenCount: number,
+  score: number,
+  baseExplanation: string
+): Promise<string> {
+  let attempts = 0;
+  const maxAttempts = ROTATION_KEYS.length;
+
+  while (attempts < maxAttempts) {
+    const key = getGeminiApiKey();
+    if (!key) break;
+
+    try {
+      console.log(`Attempting Gemini Priority Explanation (key index: ${currentRotationKeyIndex})`);
+      const genAI = new GoogleGenerativeAI(key);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+      const prompt = `You are the CivicPulse Explainable AI Decision Engine for the Visakhapatnam local government.
+You need to generate a professional, executive-level explanation for why a specific infrastructure project received a priority score of ${score}/100.
+Context:
+- Project Category: ${category}
+- Target Village/Region: ${villageName}
+- Number of Citizen Grievances: ${citizenCount}
+- Mathematical Baseline Explanation: ${baseExplanation}
+
+Write a 2-3 sentence authoritative explanation. 
+Start directly with the explanation. Do not use prefixes like "Here is the explanation".
+Adopt a tone suitable for an official government intelligence report.
+Highlight the urgency based on the citizen count and the score.`;
+
+      const response = await model.generateContent([prompt]);
+      const result = response.response.text()?.trim();
+      
+      if (result) return result;
+      throw new Error("Empty response from Gemini");
+    } catch (err: any) {
+      console.warn(`Gemini priority key[${currentRotationKeyIndex}] failed:`, err?.message || err);
+      currentRotationKeyIndex = (currentRotationKeyIndex + 1) % ROTATION_KEYS.length;
+      attempts++;
+    }
+  }
+
+  // Fallback to the math explanation if all keys fail
+  return baseExplanation;
+}

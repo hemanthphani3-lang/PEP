@@ -236,9 +236,6 @@ export default function DashboardOverview() {
             <h3 className="text-lg sm:text-xl font-bold text-slate-800 font-outfit">Recent Citizen Complaints</h3>
             <p className="text-xs text-slate-400">Live feed of translated and geotagged requests</p>
           </div>
-          <Link href="/submit" className="text-xs font-bold text-blue-600 bg-blue-50 border border-blue-100 hover:bg-blue-100 px-3 py-1.5 rounded-lg flex items-center gap-1">
-            New Submission <ArrowUpRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
 
         <div className="overflow-x-auto">

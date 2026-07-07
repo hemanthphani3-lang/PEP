@@ -3,191 +3,196 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Vote, Menu, X, BarChart3, ChevronRight, PlusCircle } from "lucide-react";
+import { Vote, Menu, X, ChevronRight, PlusCircle, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { LANGUAGES, LanguageSelectorModal } from "@/components/LanguageSelector";
 
-export default function Navbar() {
+interface NavbarProps {
+  transparent?: boolean;
+}
+
+export default function Navbar({ transparent = false }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [lang, setLang] = useState("en");
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
     setLang(localStorage.getItem("civicpulse_lang") || "en");
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("civicpulse_lang") || "en");
+    };
+    window.addEventListener("language-change", handleLangChange);
+    return () => window.removeEventListener("language-change", handleLangChange);
   }, []);
-
-  const handleLangChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selected = e.target.value;
-    setLang(selected);
-    localStorage.setItem("civicpulse_lang", selected);
-    window.dispatchEvent(new Event("language-change"));
-  };
 
   const links = [
     { name: "Home", href: "/" },
+    { name: "How It Works", href: "/how-it-works" },
     { name: "Submit Suggestion", href: "/submit" },
-    { name: "MP Dashboard", href: "/dashboard" },
+    { name: "Contact Us", href: "/contact" },
   ];
 
+  // Transparent (over dark bg) vs default (white) style tokens
+  const headerBg   = transparent ? "bg-transparent border-white/10"        : "bg-white/75 border-slate-200/80 backdrop-blur-md";
+  const logoText   = transparent ? "text-white"                             : "text-slate-800";
+  const subText    = transparent ? "text-white/60"                          : "text-slate-400";
+  const linkBase   = transparent ? "text-white/80 hover:text-white"         : "text-slate-500 hover:text-slate-800";
+  const linkActive = transparent ? "text-white font-extrabold"              : "text-blue-600";
+  const langBtn    = transparent
+    ? "bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm"
+    : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200 shadow-sm hover:shadow";
+  const globeColor = transparent ? "text-emerald-300"                       : "text-blue-500";
+  const suggBtn    = transparent ? "bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm" : "bg-slate-100 hover:bg-slate-200 text-slate-700";
+  const hamburger  = transparent ? "text-white hover:bg-white/10"           : "text-slate-500 hover:bg-slate-100";
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/75 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200 group-hover:scale-105 transition-transform duration-300">
-              <Vote className="w-5.5 h-5.5" />
-            </div>
-            <div>
-              <span className="font-outfit font-bold text-lg leading-tight tracking-tight text-slate-800 flex items-center gap-1.5">
-                CivicPulse <span className="text-blue-600 font-extrabold">AI</span>
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+    <>
+      <header className={`sticky top-0 z-[100] w-full border-b transition-all duration-300 ${headerBg}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-3 group">
+              <img
+                src="/logo.png"
+                alt="Pragathi Path Logo"
+                className="h-10 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
+              />
+              <div>
+                <span className={`font-outfit font-black text-base leading-tight tracking-tight flex items-center gap-1.5 ${logoText}`}>
+                  Pragathi Path
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
                 </span>
-              </span>
-              <p className="text-[10px] text-slate-400 font-medium">MP Demand Prioritization</p>
-            </div>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            {links.map((link) => {
-              const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
-              return (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className={`text-sm font-medium transition-all duration-300 relative py-1.5 ${
-                    isActive ? "text-blue-600" : "text-slate-500 hover:text-slate-800"
-                  }`}
-                >
-                  {link.name}
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-underline"
-                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Action CTAs */}
-          <div className="hidden md:flex items-center gap-4">
-            {/* Language Selector Dropdown */}
-            <div className="relative">
-              <select
-                value={lang}
-                onChange={handleLangChange}
-                className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold px-3 py-2 pr-7 rounded-xl text-xs transition-colors border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer font-outfit"
-              >
-                <option value="en">English (UK)</option>
-                <option value="hi">हिन्दी (Hindi)</option>
-                <option value="te">తెలుగు (Telugu)</option>
-                <option value="ta">தமிழ் (Tamil)</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400">
-                <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20">
-                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                </svg>
+                <p className={`text-[9px] font-bold uppercase tracking-wider ${subText}`}>Your Voice. Our Priority.</p>
               </div>
-            </div>
-
-            <Link
-              href="/submit"
-              className="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl text-xs transition-all duration-300"
-            >
-              <PlusCircle className="w-4 h-4" /> Suggestion
             </Link>
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-xl text-xs transition-all duration-300 shadow-sm shadow-blue-100 hover:shadow-md hover:shadow-blue-200 hover:-translate-y-0.5 active:translate-y-0"
-            >
-              MP Dashboard <ChevronRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
 
-          {/* Mobile menu button */}
-          <div className="flex md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-xl text-slate-500 hover:bg-slate-100 focus:outline-none transition-colors"
-            >
-              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-slate-100 bg-white overflow-hidden"
-          >
-            <div className="space-y-1.5 px-4 pt-3 pb-4">
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-8">
               {links.map((link) => {
                 const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
                 return (
                   <Link
-                    key={link.name}
+                    key={link.href}
                     href={link.href}
-                    onClick={() => setIsOpen(false)}
-                    className={`block px-3 py-2.5 rounded-xl text-base font-medium transition-colors ${
-                      isActive 
-                        ? "bg-blue-50 text-blue-600 font-bold" 
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    className={`text-xs font-bold uppercase tracking-wider transition-colors font-outfit ${
+                      isActive ? linkActive : linkBase
                     }`}
                   >
                     {link.name}
                   </Link>
                 );
               })}
-              
-              <div className="pt-4 flex flex-col gap-2.5">
-                {/* Mobile Language Selector */}
-                <div className="relative w-full">
-                  <select
-                    value={lang}
-                    onChange={handleLangChange}
-                    className="appearance-none w-full bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold px-3 py-2.5 pr-8 rounded-xl text-sm transition-colors border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer font-outfit"
-                  >
-                    <option value="en">English (UK)</option>
-                    <option value="hi">हिन्दी (Hindi)</option>
-                    <option value="te">తెలుగు (Telugu)</option>
-                    <option value="ta">தமிழ் (Tamil)</option>
-                  </select>
-                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400">
-                    <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20">
-                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                    </svg>
-                  </div>
-                </div>
+            </nav>
 
-                <Link
-                  href="/submit"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-center gap-1.5 bg-slate-150 text-slate-700 font-semibold py-2.5 rounded-xl text-sm"
-                >
-                  <PlusCircle className="w-4 h-4" /> Submit Suggestion
-                </Link>
-                <Link
-                  href="/dashboard"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center justify-center gap-1 bg-blue-600 text-white font-semibold py-2.5 rounded-xl text-sm shadow-md shadow-blue-200"
-                >
-                  Enter MP Dashboard <ChevronRight className="w-4 h-4" />
-                </Link>
-              </div>
+            {/* Action CTAs */}
+            <div className="hidden md:flex items-center gap-3">
+              {/* Language Selector */}
+              <button
+                onClick={() => setIsLangModalOpen(true)}
+                className={`flex items-center gap-1.5 font-bold px-3.5 py-2.5 rounded-xl text-xs transition-all border focus:outline-none cursor-pointer font-outfit active:scale-95 duration-200 ${langBtn}`}
+              >
+                <Globe className={`w-3.5 h-3.5 ${globeColor}`} />
+                <span>{LANGUAGES.find(l => l.code === lang)?.native || "Language"}</span>
+              </button>
+
+              <Link
+                href="/submit"
+                className={`flex items-center gap-1.5 font-semibold px-4 py-2 rounded-xl text-xs transition-all duration-300 ${suggBtn}`}
+              >
+                <PlusCircle className="w-4 h-4" /> Suggestion
+              </Link>
+              <Link
+                href="/contact"
+                className="flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl text-xs transition-all duration-300 shadow-md shadow-blue-900/30 hover:-translate-y-0.5 active:translate-y-0"
+              >
+                Contact Us <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </header>
+
+            {/* Mobile menu button */}
+            <div className="flex md:hidden">
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                className={`inline-flex items-center justify-center p-2 rounded-xl focus:outline-none transition-colors ${hamburger}`}
+              >
+                {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu — always solid white for readability */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden border-t border-white/10 bg-slate-900/95 backdrop-blur-lg overflow-hidden"
+            >
+              <div className="space-y-1.5 px-4 pt-3 pb-4">
+                {links.map((link) => {
+                  const isActive = pathname === link.href || (link.href !== "/" && pathname.startsWith(link.href));
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      onClick={() => setIsOpen(false)}
+                      className={`block px-4 py-2.5 rounded-xl text-sm font-outfit transition-colors ${
+                        isActive
+                          ? "bg-white/10 text-white font-bold"
+                          : "text-white/70 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      {link.name}
+                    </Link>
+                  );
+                })}
+
+                <div className="pt-4 flex flex-col gap-2.5">
+                  <button
+                    onClick={() => { setIsOpen(false); setIsLangModalOpen(true); }}
+                    className="flex w-full items-center justify-between bg-white/10 hover:bg-white/15 text-white font-bold px-4 py-3 rounded-xl text-sm transition-all border border-white/10 font-outfit backdrop-blur-sm"
+                  >
+                    <span className="flex items-center gap-2 text-left">
+                      <Globe className="w-4 h-4 text-emerald-400" />
+                      <span>Language / भाषा / భాష / மொழி</span>
+                    </span>
+                    <span className="text-xs text-emerald-400 bg-white/10 px-2.5 py-0.5 rounded-full font-bold">
+                      {LANGUAGES.find(l => l.code === lang)?.native}
+                    </span>
+                  </button>
+
+                  <Link
+                    href="/submit"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/20 text-white font-semibold py-2.5 rounded-xl text-sm border border-white/10"
+                  >
+                    <PlusCircle className="w-4 h-4" /> Submit Suggestion
+                  </Link>
+                  <Link
+                    href="/contact"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl text-sm shadow-sm"
+                  >
+                    Contact Us <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
+
+      {/* Language Modal */}
+      <LanguageSelectorModal
+        isOpen={isLangModalOpen}
+        onClose={() => setIsLangModalOpen(false)}
+      />
+    </>
   );
 }

@@ -11,9 +11,11 @@ import {
   X,
   LogOut,
   ShieldCheck,
-  Megaphone
+  Megaphone,
+  Globe
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { LANGUAGES, LanguageSelectorModal } from "@/components/LanguageSelector";
 
 const sidebarLinks = [
   { name: "My Submissions", href: "/citizen/my-submissions", icon: UserCircle },
@@ -26,6 +28,8 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [phone, setPhone] = useState<string | null>(null);
+  const [lang, setLang] = useState("en");
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
 
   useEffect(() => {
     const savedPhone = localStorage.getItem("civicpulse_citizen_phone");
@@ -35,6 +39,15 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
       setPhone(savedPhone);
     }
   }, [router]);
+
+  useEffect(() => {
+    setLang(localStorage.getItem("civicpulse_lang") || "en");
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("civicpulse_lang") || "en");
+    };
+    window.addEventListener("language-change", handleLangChange);
+    return () => window.removeEventListener("language-change", handleLangChange);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("civicpulse_citizen_phone");
@@ -66,11 +79,13 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
       >
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center">
-              <Megaphone className="w-5 h-5 text-white" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Pragathi Path Logo"
+              className="h-8 w-auto object-contain"
+            />
             <span className="font-outfit font-extrabold text-xl text-slate-800 tracking-tight">
-              CivicPulse <span className="text-blue-600">Citizen</span>
+              Pragathi Path <span className="text-blue-600">Citizen</span>
             </span>
           </Link>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-slate-400 hover:text-slate-600">
@@ -79,6 +94,22 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
         </div>
 
         <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+          {/* Language Selector Trigger */}
+          <div className="pb-4 px-1">
+            <button
+              onClick={() => setIsLangModalOpen(true)}
+              className="flex w-full items-center justify-between bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold px-3.5 py-2.5 rounded-xl text-xs transition-all border border-slate-200 font-outfit shadow-sm hover:shadow"
+            >
+              <span className="flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-blue-500" />
+                <span>Language</span>
+              </span>
+              <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md font-extrabold uppercase font-mono">
+                {LANGUAGES.find(l => l.code === lang)?.native}
+              </span>
+            </button>
+          </div>
+
           {sidebarLinks.map((link) => {
             const isActive = pathname === link.href;
             return (
@@ -114,7 +145,7 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
           
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-rose-600 bg-rose-55 hover:bg-rose-100 rounded-xl transition-colors"
           >
             <LogOut className="w-4 h-4" /> Logout
           </button>
@@ -135,6 +166,15 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
               Citizen Portal
             </span>
           </div>
+
+          {/* Mobile header Language Selector */}
+          <button
+            onClick={() => setIsLangModalOpen(true)}
+            className="flex items-center gap-1 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold px-2.5 py-1.5 rounded-lg text-xs border border-slate-200"
+          >
+            <Globe className="w-3.5 h-3.5 text-blue-500" />
+            <span>{LANGUAGES.find(l => l.code === lang)?.native}</span>
+          </button>
         </header>
 
         <main className="flex-1 overflow-y-auto">
@@ -143,6 +183,8 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
           </div>
         </main>
       </div>
+
+      <LanguageSelectorModal isOpen={isLangModalOpen} onClose={() => setIsLangModalOpen(false)} />
     </div>
   );
 }

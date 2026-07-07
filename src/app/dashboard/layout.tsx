@@ -1,12 +1,28 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
-import { User, Calendar, Cloud, Wifi } from "lucide-react";
+import { User, Calendar, Globe } from "lucide-react";
+import { LANGUAGES, LanguageSelectorModal } from "@/components/LanguageSelector";
+import PrajaChatbot from "@/components/PrajaChatbot";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [lang, setLang] = useState("en");
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+
+  useEffect(() => {
+    setLang(localStorage.getItem("civicpulse_lang") || "en");
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("civicpulse_lang") || "en");
+    };
+    window.addEventListener("language-change", handleLangChange);
+    return () => window.removeEventListener("language-change", handleLangChange);
+  }, []);
+
   const currentDate = new Date().toLocaleDateString("en-US", {
     weekday: "short",
     year: "numeric",
@@ -31,6 +47,15 @@ export default function DashboardLayout({
 
           <div className="flex items-center gap-6">
             
+            {/* Language Selector Trigger */}
+            <button
+              onClick={() => setIsLangModalOpen(true)}
+              className="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold px-3 py-2 rounded-xl text-xs transition-all border border-slate-200 focus:outline-none cursor-pointer font-outfit shadow-sm hover:shadow"
+            >
+              <Globe className="w-3.5 h-3.5 text-blue-500" />
+              <span>{LANGUAGES.find(l => l.code === lang)?.native || "Language"}</span>
+            </button>
+
             {/* Quick Status pills */}
             <div className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -54,6 +79,11 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+
+      <LanguageSelectorModal isOpen={isLangModalOpen} onClose={() => setIsLangModalOpen(false)} />
+      
+      {/* Floating MP AI Assistant */}
+      <PrajaChatbot />
     </div>
   );
 }

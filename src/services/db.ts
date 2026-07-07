@@ -1,3 +1,5 @@
+import { generatePriorityExplanation } from "./gemini";
+
 export interface User {
   uid: string;
   name: string;
@@ -525,12 +527,11 @@ export const DBService = {
     if (!sb) return;
 
     try {
-      // Only seed Supabase if table is empty or force
-      const { data, error } = await withTimeout(
+      // 1. Seed public_data if empty or force
+      const { data: pdData, error: pdError } = await withTimeout(
         sb.from("public_data").select("region_id").limit(1)
       );
-
-      if (error || !data || data.length === 0 || force) {
+      if (pdError || !pdData || pdData.length === 0 || force) {
         await withTimeout(sb.from("public_data").upsert(
           PRESET_PUBLIC_DATA.map(d => ({
             region_id: d.regionId,
@@ -546,7 +547,14 @@ export const DBService = {
             water_purity_index: d.waterPurityIndex
           }))
         ));
+        console.log("Supabase public_data table seeded.");
+      }
 
+      // 2. Seed submissions if empty or force
+      const { data: subData, error: subError } = await withTimeout(
+        sb.from("submissions").select("submission_id").limit(5)
+      );
+      if (subError || !subData || subData.length < 5 || force) {
         await withTimeout(sb.from("submissions").upsert(
           PRESET_SUBMISSIONS.map(s => ({
             submission_id: s.submissionId,
@@ -562,10 +570,19 @@ export const DBService = {
             created_at: s.createdAt,
             cluster_id: s.clusterId ?? null,
             village_name: s.villageName,
-            language: s.language
+            language: s.language,
+            audio_url: s.audioUrl ?? null,
+            phone_number: s.phoneNumber ?? null
           }))
         ));
+        console.log("Supabase submissions table seeded.");
+      }
 
+      // 3. Seed clusters if empty or force
+      const { data: clData, error: clError } = await withTimeout(
+        sb.from("clusters").select("cluster_id").limit(3)
+      );
+      if (clError || !clData || clData.length < 3 || force) {
         await withTimeout(sb.from("clusters").upsert(
           PRESET_CLUSTERS.map(c => ({
             cluster_id: c.clusterId,
@@ -581,11 +598,12 @@ export const DBService = {
             public_evidence_link: c.publicEvidenceLink ?? null
           }))
         ));
-
-        console.log("%c✅ CivicPulse: Supabase seed complete", "color:green;font-weight:bold");
+        console.log("Supabase clusters table seeded.");
       }
+
+      console.log("%c✅ CivicPulse: Supabase seed check complete", "color:green;font-weight:bold");
     } catch (err) {
-      console.warn("Supabase seed failed — using localStorage fallback.", err);
+      console.warn("Supabase seed check failed:", err);
     }
   },
 
@@ -826,15 +844,33 @@ export const DBService = {
       if (sub.imageUrl && !matchedCluster.images.includes(sub.imageUrl)) {
         matchedCluster.images.push(sub.imageUrl);
       }
-      const { score, explanation } = calculatePriorityScore(
+      const { score, explanation: baseExplanation } = calculatePriorityScore(
         matchedCluster.citizenCount, sub.villageName, matchedCluster.category
       );
+      
+      const finalExplanation = await generatePriorityExplanation(
+        sub.villageName,
+        matchedCluster.category,
+        matchedCluster.citizenCount,
+        score,
+        baseExplanation
+      );
+
       matchedCluster.priorityScore = score;
-      matchedCluster.explanation = explanation;
+      matchedCluster.explanation = finalExplanation;
       sub.clusterId = matchedCluster.clusterId;
     } else {
       const newClusterId = "cluster_" + sub.category.toLowerCase().replace(/\s/g, "_") + "_" + Date.now();
-      const { score, explanation } = calculatePriorityScore(1, sub.villageName, sub.category);
+      const { score, explanation: baseExplanation } = calculatePriorityScore(1, sub.villageName, sub.category);
+      
+      const finalExplanation = await generatePriorityExplanation(
+        sub.villageName,
+        sub.category,
+        1,
+        score,
+        baseExplanation
+      );
+
       const newCluster: Cluster = {
         clusterId: newClusterId,
         title: `Community Request for ${sub.category} Infrastructure in ${sub.villageName}`,
@@ -842,7 +878,7 @@ export const DBService = {
         citizenCount: 1,
         villagesAffected: [sub.villageName],
         priorityScore: score,
-        explanation,
+        explanation: finalExplanation,
         images: sub.imageUrl ? [sub.imageUrl] : [],
         location: { latitude: sub.latitude, longitude: sub.longitude },
         status: "Pending",
@@ -886,5 +922,22 @@ export const DBService = {
         }
       }
     }
+  },
+
+  async getPrajaChatHistory(userId: string): Promise<PrajaChatMessage[]> {
+    return getLocalData<PrajaChatMessage[]>(`praja_chat_${userId}`, []);
+  },
+
+  async savePrajaChatMessage(userId: string, message: PrajaChatMessage): Promise<void> {
+    const history = await this.getPrajaChatHistory(userId);
+    history.push(message);
+    setLocalData(`praja_chat_${userId}`, history);
   }
 };
+
+export interface PrajaChatMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+}

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { DBService, Submission, Cluster } from "@/services/db";
 import { translateTextWithSarvam, speakText } from "@/services/sarvam";
+import { AudioPlayer } from "@/components/AudioPlayer";
 import { 
   ArrowLeft, 
   MapPin, 
@@ -341,8 +342,8 @@ export default function SuggestionsFeed() {
                           )}
                           {sub.audioUrl && (
                             <div className="mt-3">
-                              <span className="text-[10px] font-bold text-slate-500 block mb-1">Original Voice Recording</span>
-                              <audio controls src={sub.audioUrl} className="w-full h-8" />
+                              <span className="text-[10px] font-bold text-slate-500 block mb-1.5">Original Voice Recording</span>
+                              <AudioPlayer src={sub.audioUrl} />
                             </div>
                           )}
 

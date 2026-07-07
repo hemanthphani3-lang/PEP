@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -13,13 +13,26 @@ import {
   ArrowLeft, 
   Menu, 
   X,
-  Vote
+  Vote,
+  Globe
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { LANGUAGES, LanguageSelectorModal } from "@/components/LanguageSelector";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [lang, setLang] = useState("en");
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+
+  useEffect(() => {
+    setLang(localStorage.getItem("civicpulse_lang") || "en");
+    const handleLangChange = () => {
+      setLang(localStorage.getItem("civicpulse_lang") || "en");
+    };
+    window.addEventListener("language-change", handleLangChange);
+    return () => window.removeEventListener("language-change", handleLangChange);
+  }, []);
 
   const menuItems = [
     { name: "Overview Dashboard", href: "/dashboard", icon: BarChart3 },
@@ -35,11 +48,13 @@ export default function Sidebar() {
       {/* Mobile Top Bar */}
       <div className="md:hidden flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-4 sticky top-0 z-30 shadow-sm">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
-            <Vote className="w-5 h-5" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Pragathi Path Logo"
+            className="h-8 w-auto object-contain"
+          />
           <span className="font-outfit font-bold text-sm tracking-tight text-slate-800">
-            CivicPulse <span className="text-blue-600">MP</span>
+            Pragathi Path <span className="text-blue-600">MP</span>
           </span>
         </Link>
         <button
@@ -59,16 +74,18 @@ export default function Sidebar() {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="w-72 h-full bg-white p-5 flex flex-col border-r border-slate-250"
+              className="w-72 h-full bg-white p-5 flex flex-col border-r border-slate-255"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between pb-6 border-b border-slate-100">
                 <Link href="/" className="flex items-center gap-2">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white">
-                    <Vote className="w-5 h-5" />
-                  </div>
+                  <img
+                    src="/logo.png"
+                    alt="Pragathi Path Logo"
+                    className="h-8 w-auto object-contain"
+                  />
                   <span className="font-outfit font-bold text-base text-slate-800">
-                    CivicPulse <span className="text-blue-600">AI</span>
+                    Pragathi Path <span className="text-blue-600">MP</span>
                   </span>
                 </Link>
                 <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-slate-100 rounded-full text-slate-400">
@@ -77,7 +94,26 @@ export default function Sidebar() {
               </div>
 
               {/* Navigation Links */}
-              <nav className="flex-1 mt-6 space-y-1">
+              <nav className="flex-1 mt-6 space-y-1.5">
+                {/* Mobile Language Selector trigger */}
+                <div className="pb-4 border-b border-slate-100">
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      setIsLangModalOpen(true);
+                    }}
+                    className="flex w-full items-center justify-between bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold px-3.5 py-2.5 rounded-xl text-xs transition-all border border-slate-200 font-outfit"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-blue-500" />
+                      <span>Language</span>
+                    </span>
+                    <span className="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md font-extrabold uppercase font-mono">
+                      {LANGUAGES.find(l => l.code === lang)?.native}
+                    </span>
+                  </button>
+                </div>
+
                 {menuItems.map((item) => {
                   const isActive = pathname === item.href;
                   return (
@@ -116,12 +152,14 @@ export default function Sidebar() {
       <aside className="hidden md:flex w-64 flex-col border-r border-slate-200 bg-white h-screen sticky top-0 overflow-y-auto">
         <div className="p-6 border-b border-slate-100 flex flex-col gap-1">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200 group-hover:scale-105 transition-transform duration-300">
-              <Vote className="w-5.5 h-5.5" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Pragathi Path Logo"
+              className="h-10 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
+            />
             <div>
-              <span className="font-outfit font-bold text-base leading-none text-slate-800">
-                CivicPulse <span className="text-blue-600 font-extrabold">MP</span>
+              <span className="font-outfit font-black text-base leading-none text-slate-800 flex items-center gap-1">
+                Pragathi Path <span className="text-blue-600">MP</span>
               </span>
               <p className="text-[10px] text-slate-400 font-medium">MP Intelligence Portal</p>
             </div>
@@ -168,6 +206,8 @@ export default function Sidebar() {
           </Link>
         </div>
       </aside>
+
+      <LanguageSelectorModal isOpen={isLangModalOpen} onClose={() => setIsLangModalOpen(false)} />
     </>
   );
 }

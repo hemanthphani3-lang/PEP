@@ -120,6 +120,16 @@ export default function MPLogin() {
               )}
             </button>
             
+            <button
+              type="button"
+              onClick={() => {
+                router.push("/dashboard");
+              }}
+              className="w-full mt-3 flex justify-center items-center gap-2 py-3 px-4 border border-slate-700 rounded-xl text-sm font-bold text-slate-300 bg-slate-800 hover:bg-slate-700 transition-all duration-300 shadow-sm"
+            >
+              Bypass Auth (Quick Test)
+            </button>
+            
             <div className="mt-4 text-center">
               <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold flex items-center justify-center gap-1">
                 <ShieldCheck className="w-3 h-3" /> End-to-End Encrypted

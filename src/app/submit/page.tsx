@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
+import { langTranslations } from "@/utils/langTranslations";
 
 // Sample images that judges can select instantly to test the AI
 const SAMPLE_DEFECTS = [
@@ -264,7 +265,11 @@ export default function SubmitRequest() {
     return () => window.removeEventListener("language-change", handleLangChange);
   }, []);
 
-  const copy = translations[lang] || translations.en;
+  const copy = {
+    ...translations.en,
+    ...(translations[lang as keyof typeof translations] || {}),
+    ...(langTranslations[lang] || {})
+  };
 
   // Interactive Map State
   const [mapHoveredVillage, setMapHoveredVillage] = useState<string | null>(null);
@@ -503,7 +508,7 @@ export default function SubmitRequest() {
         translatedText: aiResult.translatedText,
         summary: aiResult.summary,
         category: finalCategory,
-        imageUrl: imageFile || imageUrl || "https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=800&auto=format&fit=crop&q=60", // default
+        imageUrl: imageFile || imageUrl || undefined,
         latitude: lat,
         longitude: lng,
         language: aiResult.language,

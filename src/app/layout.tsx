@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Outfit, Inter } from "next/font/google";
 import { DemoConfigProvider } from "@/components/DemoConfigContext";
-import DemoSettings from "@/components/DemoSettings";
+import { GoogleTranslateProvider } from "@/components/GoogleTranslateProvider";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -17,11 +17,11 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "CivicPulse AI - MP Citizen Demand Intelligence Platform",
+  title: "Pragathi Path - MP Citizen Demand Intelligence Platform",
   description: 
     "An AI-powered multilingual platform helping Members of Parliament identify, analyze, and prioritize development projects using citizen input, public records, and explainable scoring.",
   keywords: ["civic tech", "MP constituency development", "public demand intelligence", "explainable AI priority scoring", "Gemini 2.5 Flash", "Google Maps Heatmap"],
-  authors: [{ name: "CivicPulse AI Team" }],
+  authors: [{ name: "Pragathi Path Team" }],
 };
 
 export default function RootLayout({
@@ -38,9 +38,9 @@ export default function RootLayout({
         className={`${outfit.variable} ${inter.variable} font-sans antialiased bg-slate-50 text-slate-900 h-full min-h-screen flex flex-col`}
       >
         <DemoConfigProvider>
+          <GoogleTranslateProvider />
           <div className="flex-1 flex flex-col relative">
             {children}
-            <DemoSettings />
           </div>
         </DemoConfigProvider>
       </body>
