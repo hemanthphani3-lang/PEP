@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { transcribeAudio } from '@/services/gemini';
+import { isSarvamConfigured, transcribeAudioWithSarvam } from '@/services/sarvam';
+
 
 export interface UseSpeechRecognitionResult {
   text: string;
@@ -149,7 +151,7 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
         dataReader.readAsDataURL(audioBlob);
 
         // Use Native Speech API (Chrome's Google Cloud STT) as PRIMARY for best Indian language accuracy.
-        // ONLY fallback to Gemini if Native speech completely failed to capture text.
+        // Fall back to Sarvam AI or Gemini if Native speech completely failed to capture text.
         if (!text) {
           setMode('whisper'); // keeping state name for compatibility with UI
           setIsTranscribing(true);
@@ -158,7 +160,19 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
           reader.onload = async () => {
             try {
               const base64DataUrl = reader.result as string;
-              const transcription = await transcribeAudio(base64DataUrl, 'audio/webm', preferredLang);
+              let transcription = "";
+              
+              if (isSarvamConfigured()) {
+                console.log("Transcribing fallback with Sarvam AI STT...");
+                transcription = await transcribeAudioWithSarvam(base64DataUrl, 'audio/webm', preferredLang);
+              }
+              
+              // If Sarvam is not configured or failed to return text, fallback to Gemini
+              if (!transcription || transcription === "Audio transcription could not be recognized.") {
+                console.log("Transcribing fallback with Gemini Speech-to-Text...");
+                transcription = await transcribeAudio(base64DataUrl, 'audio/webm', preferredLang);
+              }
+
               if (transcription && transcription !== "Audio transcription could not be recognized.") {
                 setText(transcription);
               } else {
@@ -167,7 +181,7 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
               setIsTranscribing(false);
               setMode('idle');
             } catch (err) {
-              console.error('Gemini audio transcription error:', err);
+              console.error('Audio transcription fallback error:', err);
               setError('Failed to process audio for fallback transcription.');
               setIsTranscribing(false);
               setMode('idle');

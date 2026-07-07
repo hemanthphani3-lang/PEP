@@ -9,15 +9,18 @@ export default function DemoSettings() {
   const [isOpen, setIsOpen] = useState(false);
   const { 
     geminiKey, 
+    sarvamKey,
     supabaseUrl, 
     supabaseKey, 
     isFirebaseActive, 
     setGeminiKey, 
+    setSarvamKey,
     setSupabaseConfig, 
     resetDatabase 
   } = useDemoConfig();
 
   const [gInput, setGInput] = useState(geminiKey);
+  const [sarInput, setSarInput] = useState(sarvamKey);
   const [sUrlInput, setSUrlInput] = useState(supabaseUrl);
   const [sKeyInput, setSKeyInput] = useState(supabaseKey);
   const [isResetting, setIsResetting] = useState(false);
@@ -31,6 +34,7 @@ export default function DemoSettings() {
   const handleSave = () => {
     localStorage.setItem("civicpulse_force_mock", forceMock ? "true" : "false");
     setGeminiKey(gInput);
+    setSarvamKey(sarInput);
     setSupabaseConfig(sUrlInput, sKeyInput);
     setIsOpen(false);
   };
@@ -109,6 +113,27 @@ export default function DemoSettings() {
                     </p>
                   </div>
 
+                  {/* Sarvam AI API Key */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-purple-600" />
+                      Sarvam AI API Key
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="password"
+                        placeholder="sk_..."
+                        value={sarInput}
+                        onChange={(e) => setSarInput(e.target.value)}
+                        className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-800"
+                      />
+                      <Key className="absolute left-3 top-2.5 w-4 h-4 text-slate-400" />
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      Used for high-fidelity Indic Speech-to-Text (STT), Text-to-Speech (TTS), and native back-translations (Telugu/Hindi).
+                    </p>
+                  </div>
+
                   {/* Supabase Config Group */}
                   <div className="space-y-4 pt-2 border-t border-slate-100">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Supabase Connection Parameters</h3>
@@ -172,6 +197,20 @@ export default function DemoSettings() {
                     <div className="flex items-center justify-between text-xs p-2.5 border border-slate-150 rounded-lg bg-slate-50">
                       <span className="text-slate-600 font-medium">Gemini 2.5 Flash</span>
                       {geminiKey ? (
+                        <span className="flex items-center gap-1 text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                          <CheckCircle className="w-3.5 h-3.5" /> Live API
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                          <AlertCircle className="w-3.5 h-3.5" /> Simulated
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Sarvam AI Status */}
+                    <div className="flex items-center justify-between text-xs p-2.5 border border-slate-150 rounded-lg bg-slate-50">
+                      <span className="text-slate-600 font-medium">Sarvam AI API</span>
+                      {sarvamKey ? (
                         <span className="flex items-center gap-1 text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
                           <CheckCircle className="w-3.5 h-3.5" /> Live API
                         </span>

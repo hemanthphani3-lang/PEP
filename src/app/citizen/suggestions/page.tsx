@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { DBService, Submission, Cluster } from "@/services/db";
+import { translateTextWithSarvam, speakText } from "@/services/sarvam";
 import { 
   ArrowLeft, 
   MapPin, 
@@ -12,7 +13,11 @@ import {
   Search,
   Layers,
   Sparkles,
-  AlertTriangle
+  AlertTriangle,
+  Languages,
+  Volume2,
+  VolumeX,
+  Loader2
 } from "lucide-react";
 import Link from "next/link";
 
@@ -30,6 +35,23 @@ export default function SuggestionsFeed() {
   const [upvotes, setUpvotes] = useState<Record<string, number>>({});
   const [downvotes, setDownvotes] = useState<Record<string, number>>({});
   const [userVotes, setUserVotes] = useState<Record<string, "up" | "down" | null>>({});
+
+  // Active language and translate/speech states
+  const [activeLang, setActiveLang] = useState("en");
+  const [translatedTexts, setTranslatedTexts] = useState<Record<string, string>>({});
+  const [translatingIds, setTranslatingIds] = useState<Record<string, boolean>>({});
+  const [speakingIds, setSpeakingIds] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    const loadLang = () => {
+      setActiveLang(localStorage.getItem("civicpulse_lang") || "en");
+    };
+    loadLang();
+    window.addEventListener("language-change", loadLang);
+    return () => {
+      window.removeEventListener("language-change", loadLang);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -72,6 +94,61 @@ export default function SuggestionsFeed() {
     };
     fetchData();
   }, []);
+
+  const handleTranslateCard = async (sub: Submission) => {
+    const langMap: Record<string, string> = {
+      en: "English",
+      hi: "Hindi",
+      te: "Telugu",
+      ta: "Tamil"
+    };
+    const targetLangName = langMap[activeLang] || "English";
+    if (activeLang === "en") return;
+
+    setTranslatingIds((prev) => ({ ...prev, [sub.submissionId]: true }));
+    try {
+      const textToTranslate = `Grievance category: ${sub.category} in ${sub.villageName}. Details: ${sub.translatedText || sub.text}`;
+      const result = await translateTextWithSarvam(textToTranslate, "English", targetLangName);
+      setTranslatedTexts((prev) => ({ ...prev, [sub.submissionId]: result }));
+    } catch (err) {
+      console.error("Translation error:", err);
+    } finally {
+      setTranslatingIds((prev) => ({ ...prev, [sub.submissionId]: false }));
+    }
+  };
+
+  const handleSpeakCard = async (sub: Submission) => {
+    const langMap: Record<string, string> = {
+      en: "English",
+      hi: "Hindi",
+      te: "Telugu",
+      ta: "Tamil"
+    };
+    const targetLangName = langMap[activeLang] || "English";
+
+    if (speakingIds[sub.submissionId]) {
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      setSpeakingIds((prev) => ({ ...prev, [sub.submissionId]: false }));
+      return;
+    }
+
+    const textToSpeak = translatedTexts[sub.submissionId] || sub.text || sub.translatedText;
+    
+    setSpeakingIds((prev) => ({ ...prev, [sub.submissionId]: true }));
+    try {
+      await speakText(
+        textToSpeak,
+        targetLangName,
+        () => {}, // onStart
+        () => setSpeakingIds((prev) => ({ ...prev, [sub.submissionId]: false })) // onEnd
+      );
+    } catch (err) {
+      console.error("Speak error:", err);
+      setSpeakingIds((prev) => ({ ...prev, [sub.submissionId]: false }));
+    }
+  };
 
   const handleVote = (id: string, direction: "up" | "down") => {
     const currentVote = userVotes[id] || null;
@@ -266,6 +343,54 @@ export default function SuggestionsFeed() {
                             <div className="mt-3">
                               <span className="text-[10px] font-bold text-slate-500 block mb-1">Original Voice Recording</span>
                               <audio controls src={sub.audioUrl} className="w-full h-8" />
+                            </div>
+                          )}
+
+                          {/* Back-Translation View */}
+                          {translatedTexts[sub.submissionId] && (
+                            <div className="bg-purple-50 border border-purple-100 rounded-xl p-3 mt-2">
+                              <span className="text-[9px] font-bold text-purple-600 uppercase tracking-widest flex items-center gap-1 mb-1">
+                                <Languages className="w-2.5 h-2.5" /> translation ({activeLang.toUpperCase()})
+                              </span>
+                              <p className="text-[11px] font-medium text-purple-950">
+                                {translatedTexts[sub.submissionId]}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Translate & listen controls */}
+                          {activeLang !== "en" && (
+                            <div className="flex gap-2 pt-2 border-t border-slate-100/50 mt-3">
+                              <button
+                                onClick={() => handleTranslateCard(sub)}
+                                disabled={translatingIds[sub.submissionId]}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-purple-200 bg-purple-50/50 hover:bg-purple-100/50 text-purple-700 text-[10px] font-bold transition-all disabled:opacity-50"
+                              >
+                                {translatingIds[sub.submissionId] ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Languages className="w-3 h-3" />
+                                )}
+                                Translate ({activeLang.toUpperCase()})
+                              </button>
+                              <button
+                                onClick={() => handleSpeakCard(sub)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-bold transition-all ${
+                                  speakingIds[sub.submissionId]
+                                    ? "bg-red-50 border-red-200 text-red-700"
+                                    : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
+                                }`}
+                              >
+                                {speakingIds[sub.submissionId] ? (
+                                  <>
+                                    <VolumeX className="w-3 h-3 animate-pulse" /> Stop
+                                  </>
+                                ) : (
+                                  <>
+                                    <Volume2 className="w-3 h-3" /> Listen
+                                  </>
+                                )}
+                              </button>
                             </div>
                           )}
                         </div>
