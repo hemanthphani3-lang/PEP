@@ -81,8 +81,10 @@ export async function POST(request: Request) {
       const buffer = Buffer.from(base64Data, "base64");
       
       const formData = new FormData();
-      const blob = new Blob([buffer], { type: mimeType || "audio/webm" });
-      formData.append("file", blob, "audio.webm");
+      const blobType = mimeType || "audio/webm";
+      const blob = new Blob([buffer], { type: blobType });
+      const ext = blobType.includes("mp4") ? "mp4" : blobType.includes("ogg") ? "ogg" : blobType.includes("wav") ? "wav" : "webm";
+      formData.append("file", blob, `audio.${ext}`);
       formData.append("model", "saaras:v3");
       formData.append("mode", "transcribe");
       formData.append("language_code", languageCode || "en-IN");

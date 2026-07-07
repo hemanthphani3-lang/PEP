@@ -141,8 +141,8 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
       // We always want to capture the audio Blob to save it for playback, regardless of which speech engine runs.
       setTimeout(() => {
         if (audioChunksRef.current.length === 0) return;
-        
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
         
         const dataReader = new FileReader();
         dataReader.onload = () => {
@@ -164,13 +164,13 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
               
               if (isSarvamConfigured()) {
                 console.log("Transcribing fallback with Sarvam AI STT...");
-                transcription = await transcribeAudioWithSarvam(base64DataUrl, 'audio/webm', preferredLang);
+                transcription = await transcribeAudioWithSarvam(base64DataUrl, mimeType, preferredLang);
               }
               
               // If Sarvam is not configured or failed to return text, fallback to Gemini
               if (!transcription || transcription === "Audio transcription could not be recognized.") {
                 console.log("Transcribing fallback with Gemini Speech-to-Text...");
-                transcription = await transcribeAudio(base64DataUrl, 'audio/webm', preferredLang);
+                transcription = await transcribeAudio(base64DataUrl, mimeType, preferredLang);
               }
 
               if (transcription && transcription !== "Audio transcription could not be recognized.") {
