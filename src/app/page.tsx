@@ -267,7 +267,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 dot-grid opacity-15" />
 
         {/* Navbar sits INSIDE the wrapper → transparent over the crowd */}
-        <div className="relative z-10">
+        <div className="relative z-50">
           <Navbar transparent />
         </div>
 
