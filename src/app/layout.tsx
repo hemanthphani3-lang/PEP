@@ -22,6 +22,9 @@ export const metadata: Metadata = {
     "An AI-powered multilingual platform helping Members of Parliament identify, analyze, and prioritize development projects using citizen input, public records, and explainable scoring.",
   keywords: ["civic tech", "MP constituency development", "public demand intelligence", "explainable AI priority scoring", "Gemini 2.5 Flash", "Google Maps Heatmap"],
   authors: [{ name: "Pragathi Path Team" }],
+  icons: {
+    icon: "/logo.png"
+  }
 };
 
 export default function RootLayout({
