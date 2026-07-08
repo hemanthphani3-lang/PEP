@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { transcribeAudio } from '@/services/gemini';
-import { isSarvamConfigured, transcribeAudioWithSarvam } from '@/services/sarvam';
+import { isSarvamConfigured, transcribeAudioWithSarvam, translateTextWithSarvam } from '@/services/sarvam';
 import { convertWebmToWavBase64, initAudioContext } from '@/utils/audioUtils';
 
 export interface UseSpeechRecognitionResult {
@@ -160,19 +160,22 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
               
               let transcription = "";
               
-              if (preferredLang === "en") {
-                console.log("English UI active. Routing to Gemini STT for language auto-detection...");
-                transcription = await transcribeAudio(base64DataUrl, activeMimeType, preferredLang);
-              } else {
-                if (isSarvamConfigured()) {
-                  console.log("Transcribing with Sarvam AI STT...");
-                  transcription = await transcribeAudioWithSarvam(base64DataUrl, activeMimeType, preferredLang);
-                }
+              if (isSarvamConfigured()) {
+                console.log("Transcribing with Sarvam AI STT...");
+                // 1. Get native transcription (e.g. Telugu script)
+                const nativeText = await transcribeAudioWithSarvam(base64DataUrl, activeMimeType, preferredLang);
                 
-                if (!transcription || transcription === "Audio transcription could not be recognized.") {
-                  console.log("Transcribing fallback with Gemini Speech-to-Text...");
-                  transcription = await transcribeAudio(base64DataUrl, activeMimeType, preferredLang);
+                if (nativeText && nativeText !== "Audio transcription could not be recognized.") {
+                  console.log("Translating native transcription to English using Sarvam...");
+                  const sourceLang = preferredLang === "en" ? "te" : preferredLang;
+                  transcription = await translateTextWithSarvam(nativeText, sourceLang, "en");
                 }
+              }
+              
+              // Fallback directly to Gemini which translates the audio into English (UK)
+              if (!transcription || transcription === "Audio transcription could not be recognized.") {
+                console.log("Routing to Gemini for direct English (UK) translation...");
+                transcription = await transcribeAudio(base64DataUrl, activeMimeType, preferredLang);
               }
 
               if (transcription && transcription !== "Audio transcription could not be recognized.") {
