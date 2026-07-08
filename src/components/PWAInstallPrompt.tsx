@@ -116,9 +116,9 @@ export default function PWAInstallPrompt() {
               ) : (
                 <>
                   <div className="flex items-start gap-3.5 pr-6">
-                    {/* Icon */}
-                    <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 overflow-hidden">
-                      <img src="/icons/icon-96x96.png" alt="App icon" className="w-10 h-10 object-contain" />
+                    {/* Icon — use actual app logo */}
+                    <div className="w-14 h-14 rounded-2xl bg-white flex items-center justify-center shrink-0 overflow-hidden shadow-md p-1">
+                      <img src="/logo-v2.png" alt="Pragathi Path logo" className="w-full h-full object-contain" />
                     </div>
                     <div>
                       <p className="text-white font-bold text-sm leading-tight">Install Pragathi Path</p>
