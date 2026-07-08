@@ -108,22 +108,28 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
 
     if (recognitionRef.current && mode !== 'unsupported') {
       try {
-        setMode('native');
-        const bcp47Map: Record<string, string> = {
-          en: 'en-US',
-          hi: 'hi-IN',
-          te: 'te-IN',
-          ta: 'ta-IN'
-        };
-        recognitionRef.current.lang = bcp47Map[preferredLang] || 'en-US';
-        recognitionRef.current.start();
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (!isMobile) {
+          setMode('native');
+          const bcp47Map: Record<string, string> = {
+            en: 'en-US',
+            hi: 'hi-IN',
+            te: 'te-IN',
+            ta: 'ta-IN'
+          };
+          recognitionRef.current.lang = bcp47Map[preferredLang] || 'en-US';
+          recognitionRef.current.start();
+        } else {
+          setMode('whisper'); // Force fallback mode (Sarvam/Gemini) on mobile to avoid mic conflict
+        }
       } catch (err) {
         console.warn('Native speech already started or failed', err);
       }
     } else {
       setMode('unsupported');
     }
-  }, [mode]);
+  }, [mode, preferredLang]);
 
   const stopRecording = useCallback(() => {
     setIsRecording(false);
