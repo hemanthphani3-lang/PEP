@@ -284,7 +284,8 @@ export default function SubmitRequest() {
     startRecording, 
     stopRecording,
     audioDataUrl,
-    reset
+    reset,
+    error
   } = useSpeechRecognition(lang);
 
   // Update text when speechText changes
@@ -610,6 +611,13 @@ export default function SubmitRequest() {
                     onChange={(e) => setText(e.target.value)}
                     className="w-full border border-slate-200 rounded-2xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800 leading-relaxed placeholder-slate-400 resize-none shadow-inner bg-slate-50/50"
                   />
+
+                  {error && (
+                    <div className="p-3 bg-red-50 text-red-700 rounded-xl border border-red-200 text-xs flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+                      <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                      <span>{error}</span>
+                    </div>
+                  )}
 
                   {/* Real Voice Recording Trigger */}
                   <div className="flex flex-wrap items-center gap-3">
