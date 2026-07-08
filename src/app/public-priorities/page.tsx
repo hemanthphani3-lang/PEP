@@ -89,7 +89,7 @@ export default function PublicPrioritiesPage() {
                         
                         <div className="flex items-center gap-1 text-slate-500">
                           <MapPin className="w-4 h-4" />
-                          <span className="text-sm font-semibold">{cluster.villageName}</span>
+                          <span className="text-sm font-semibold">{cluster.villagesAffected.join(", ")}</span>
                         </div>
                       </div>
 
@@ -98,7 +98,7 @@ export default function PublicPrioritiesPage() {
                       </h3>
                       
                       <p className="text-slate-600 text-sm leading-relaxed mb-6">
-                        {cluster.description}
+                        {cluster.explanation}
                       </p>
 
                       <div className="flex flex-wrap items-center gap-4 sm:gap-8 border-t border-slate-100 pt-5">

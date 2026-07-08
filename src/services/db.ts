@@ -398,12 +398,12 @@ export function calculatePriorityScore(
 }
 
 // Timeout helper — 5s gives enough time for cold Supabase connections
-function withTimeout<T>(promise: Promise<T>, ms: number = 5000): Promise<T> {
+function withTimeout<T>(promise: PromiseLike<T> | Promise<T>, ms: number = 5000): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(`Supabase timed out after ${ms}ms`));
     }, ms);
-    promise
+    Promise.resolve(promise)
       .then((res) => { clearTimeout(timer); resolve(res); })
       .catch((err) => { clearTimeout(timer); reject(err); });
   });

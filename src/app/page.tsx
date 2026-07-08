@@ -293,7 +293,7 @@ export default function LandingPage() {
               </span>
 
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-outfit font-extrabold text-white tracking-tight leading-tight drop-shadow-xl">
-                {copy.heroTitle.split(" ").map((w, idx) => {
+                {copy.heroTitle.split(" ").map((w: string, idx: number) => {
                   if (w.toLowerCase() === "data-driven" || w.includes("డేటా") || w.includes("டேட்டா") || w.includes("डेटा-संचालित")) {
                     return <span key={idx} className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">{w} </span>;
                   }
