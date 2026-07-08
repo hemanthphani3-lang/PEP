@@ -121,10 +121,10 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                 <PlusCircle className="w-4 h-4" /> Suggestion
               </Link>
               <Link
-                href="/contact"
+                href="/login/mp"
                 className="flex items-center gap-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl text-xs transition-all duration-300 shadow-md shadow-blue-900/30 hover:-translate-y-0.5 active:translate-y-0"
               >
-                Contact Us <ChevronRight className="w-3.5 h-3.5" />
+                Login <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
@@ -190,11 +190,11 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                     <PlusCircle className="w-4 h-4" /> Submit Suggestion
                   </Link>
                   <Link
-                    href="/contact"
+                    href="/login/mp"
                     onClick={() => setIsOpen(false)}
                     className="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-xl text-sm shadow-sm"
                   >
-                    Contact Us <ChevronRight className="w-3.5 h-3.5" />
+                    Login <ChevronRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
               </div>
