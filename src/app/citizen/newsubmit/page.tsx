@@ -898,7 +898,7 @@ export default function SubmitRequest() {
                   {copy.btnSubmitAnother}
                 </button>
                  <Link
-                  href="/suggestions"
+                  href="/citizen/suggestions"
                   className="flex items-center justify-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition-colors shadow-sm font-outfit"
                 >
                   {copy.btnViewOthers} <ArrowRight className="w-4 h-4" />
