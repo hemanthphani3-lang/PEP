@@ -72,6 +72,18 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
   }, []);
 
   const startRecording = useCallback(async () => {
+    // 1. Check for microphone browser support and secure context constraints
+    if (typeof navigator === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (!isSecure) {
+        setError('Microphone blocked: Secure context (HTTPS) is required on mobile browsers to record audio.');
+      } else {
+        setError('Microphone recording is not supported on this browser.');
+      }
+      setIsRecording(false);
+      return;
+    }
+
     // Initialize AudioContext immediately on user gesture to avoid Safari constraints
     initAudioContext();
     
@@ -100,72 +112,82 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
         // Clean up tracks
         stream.getTracks().forEach((track) => track.stop());
 
-        if (audioChunksRef.current.length === 0) {
-          console.warn("No audio data collected.");
-          setIsTranscribing(false);
-          setMode('idle');
-          return;
-        }
-
-        const mimeType = mediaRecorder.mimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        
-        // Load the recording to data URL for local playback player
-        const dataReader = new FileReader();
-        dataReader.onload = () => {
-          setAudioDataUrl(dataReader.result as string);
-        };
-        dataReader.readAsDataURL(audioBlob);
-
-        // Run transcription if no real-time native speech was caught (primary on mobile)
-        if (!textRef.current) {
-          setMode('whisper');
-          setIsTranscribing(true);
-          
-          try {
-            const reader = new FileReader();
-            reader.onload = async () => {
-              try {
-                const base64DataUrl = reader.result as string;
-                let transcription = "";
-                
-                if (isSarvamConfigured()) {
-                  console.log("Transcribing with Sarvam AI STT...");
-                  transcription = await transcribeAudioWithSarvam(base64DataUrl, mimeType, preferredLang);
-                }
-                
-                if (!transcription || transcription === "Audio transcription could not be recognized.") {
-                  console.log("Transcribing with Gemini Speech-to-Text...");
-                  transcription = await transcribeAudio(base64DataUrl, mimeType, preferredLang);
-                }
-
-                if (transcription && transcription !== "Audio transcription could not be recognized.") {
-                  setText(transcription);
-                } else {
-                  setError('Could not recognize speech from audio.');
-                }
-              } catch (err) {
-                console.error('Audio transcription fallback error:', err);
-                setError('Failed to process audio for fallback transcription.');
-              } finally {
-                setIsTranscribing(false);
-                setMode('idle');
-              }
-            };
-            reader.readAsDataURL(audioBlob);
-          } catch (err) {
-            console.error("Critical error in fallback logic", err);
+        // Defer execution by 150ms to allow mobile browsers to finish executing 
+        // the asynchronous 'ondataavailable' macro-tasks and populate the chunks array.
+        setTimeout(async () => {
+          if (audioChunksRef.current.length === 0) {
+            console.warn("No audio data collected.");
+            setError("No audio data captured. Please make sure microphone is working.");
             setIsTranscribing(false);
             setMode('idle');
+            return;
           }
-        }
+
+          const mimeType = mediaRecorder.mimeType || 'audio/webm';
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+          
+          // Load the recording to data URL for local playback player
+          const dataReader = new FileReader();
+          dataReader.onload = () => {
+            setAudioDataUrl(dataReader.result as string);
+          };
+          dataReader.readAsDataURL(audioBlob);
+
+          // Run transcription if no real-time native speech was caught (primary on mobile)
+          if (!textRef.current) {
+            setMode('whisper');
+            setIsTranscribing(true);
+            
+            try {
+              const reader = new FileReader();
+              reader.onload = async () => {
+                try {
+                  const base64DataUrl = reader.result as string;
+                  let transcription = "";
+                  
+                  if (isSarvamConfigured()) {
+                    console.log("Transcribing with Sarvam AI STT...");
+                    transcription = await transcribeAudioWithSarvam(base64DataUrl, mimeType, preferredLang);
+                  }
+                  
+                  if (!transcription || transcription === "Audio transcription could not be recognized.") {
+                    console.log("Transcribing with Gemini Speech-to-Text...");
+                    transcription = await transcribeAudio(base64DataUrl, mimeType, preferredLang);
+                  }
+
+                  if (transcription && transcription !== "Audio transcription could not be recognized.") {
+                    setText(transcription);
+                  } else {
+                    setError('Could not recognize speech from audio.');
+                  }
+                } catch (err) {
+                  console.error('Audio transcription fallback error:', err);
+                  setError('Failed to process audio for fallback transcription.');
+                } finally {
+                  setIsTranscribing(false);
+                  setMode('idle');
+                }
+              };
+              reader.readAsDataURL(audioBlob);
+            } catch (err) {
+              console.error("Critical error in fallback logic", err);
+              setIsTranscribing(false);
+              setMode('idle');
+            }
+          }
+        }, 150);
       };
 
       // Start recording - call without timeslice to prevent native time-slice recording bugs on mobile Safari
       mediaRecorder.start();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Mic access denied:', err);
-      setError('Microphone access denied.');
+      const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      if (!isSecure) {
+        setError('Microphone blocked: Secure context (HTTPS) is required on mobile browsers.');
+      } else {
+        setError(`Microphone access error: ${err.message || err}`);
+      }
       setIsRecording(false);
       if (timerRef.current) clearInterval(timerRef.current);
       return;
