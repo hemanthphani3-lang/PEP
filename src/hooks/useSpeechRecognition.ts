@@ -3,7 +3,6 @@ import { transcribeAudio } from '@/services/gemini';
 import { isSarvamConfigured, transcribeAudioWithSarvam } from '@/services/sarvam';
 import { convertWebmToWavBase64, initAudioContext } from '@/utils/audioUtils';
 
-
 export interface UseSpeechRecognitionResult {
   text: string;
   isRecording: boolean;
@@ -32,9 +31,14 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Ref to track latest text value asynchronously to prevent stale closure bugs
+  const textRef = useRef('');
+  useEffect(() => {
+    textRef.current = text;
+  }, [text]);
 
   useEffect(() => {
-
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognition) {
       recognitionRef.current = new SpeechRecognition();
@@ -78,7 +82,6 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
     setIsRecording(true);
     setRecordingSeconds(0);
     setProgress(0);
-    audioChunksRef.current = [];
 
     timerRef.current = setInterval(() => {
       setRecordingSeconds(prev => prev + 1);
@@ -93,11 +96,73 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
+        // Clean up tracks
         stream.getTracks().forEach((track) => track.stop());
+
+        if (audioChunksRef.current.length === 0) {
+          console.warn("No audio data collected.");
+          setIsTranscribing(false);
+          setMode('idle');
+          return;
+        }
+
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+        
+        // Load the recording to data URL for local playback player
+        const dataReader = new FileReader();
+        dataReader.onload = () => {
+          setAudioDataUrl(dataReader.result as string);
+        };
+        dataReader.readAsDataURL(audioBlob);
+
+        // Run transcription if no real-time native speech was caught (primary on mobile)
+        if (!textRef.current) {
+          setMode('whisper');
+          setIsTranscribing(true);
+          
+          try {
+            const reader = new FileReader();
+            reader.onload = async () => {
+              try {
+                const base64DataUrl = reader.result as string;
+                let transcription = "";
+                
+                if (isSarvamConfigured()) {
+                  console.log("Transcribing with Sarvam AI STT...");
+                  transcription = await transcribeAudioWithSarvam(base64DataUrl, mimeType, preferredLang);
+                }
+                
+                if (!transcription || transcription === "Audio transcription could not be recognized.") {
+                  console.log("Transcribing with Gemini Speech-to-Text...");
+                  transcription = await transcribeAudio(base64DataUrl, mimeType, preferredLang);
+                }
+
+                if (transcription && transcription !== "Audio transcription could not be recognized.") {
+                  setText(transcription);
+                } else {
+                  setError('Could not recognize speech from audio.');
+                }
+              } catch (err) {
+                console.error('Audio transcription fallback error:', err);
+                setError('Failed to process audio for fallback transcription.');
+              } finally {
+                setIsTranscribing(false);
+                setMode('idle');
+              }
+            };
+            reader.readAsDataURL(audioBlob);
+          } catch (err) {
+            console.error("Critical error in fallback logic", err);
+            setIsTranscribing(false);
+            setMode('idle');
+          }
+        }
       };
 
-      mediaRecorder.start(1000);
+      // Start recording - call without timeslice to prevent native time-slice recording bugs on mobile Safari
+      mediaRecorder.start();
     } catch (err) {
       console.error('Mic access denied:', err);
       setError('Microphone access denied.');
@@ -144,70 +209,11 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
       }
     }
 
-    // Stop MediaRecorder
+    // Stop MediaRecorder (triggers the onstop event listener above)
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop();
-      
-      // We always want to capture the audio Blob to save it for playback, regardless of which speech engine runs.
-      setTimeout(async () => {
-        if (audioChunksRef.current.length === 0) return;
-        const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
-        const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
-        
-        const dataReader = new FileReader();
-        dataReader.onload = () => {
-          setAudioDataUrl(dataReader.result as string);
-        };
-        dataReader.readAsDataURL(audioBlob);
-
-        // Use Native Speech API (Chrome's Google Cloud STT) as PRIMARY for best Indian language accuracy.
-        // Fall back to Sarvam AI or Gemini if Native speech completely failed to capture text.
-        if (!text) {
-          setMode('whisper'); // keeping state name for compatibility with UI
-          setIsTranscribing(true);
-          
-          try {
-            const reader = new FileReader();
-            reader.onload = async () => {
-              try {
-                const base64DataUrl = reader.result as string;
-                let transcription = "";
-                
-                if (isSarvamConfigured()) {
-                  console.log("Transcribing fallback with Sarvam AI STT...");
-                  transcription = await transcribeAudioWithSarvam(base64DataUrl, mimeType, preferredLang);
-                }
-                
-                // Fallback to Gemini if Sarvam isn't configured or Sarvam transcription failed
-                if (!transcription || transcription === "Audio transcription could not be recognized.") {
-                  console.log("Transcribing fallback with Gemini Speech-to-Text...");
-                  transcription = await transcribeAudio(base64DataUrl, mimeType, preferredLang);
-                }
-
-                if (transcription && transcription !== "Audio transcription could not be recognized.") {
-                  setText(transcription);
-                } else {
-                  setError('Could not recognize speech from audio.');
-                }
-                setIsTranscribing(false);
-                setMode('idle');
-              } catch (err) {
-                console.error('Audio transcription fallback error:', err);
-                setError('Failed to process audio for fallback transcription.');
-                setIsTranscribing(false);
-                setMode('idle');
-              }
-            };
-            reader.readAsDataURL(audioBlob);
-          } catch (err) {
-            console.error("Critical error in fallback logic", err);
-            setIsTranscribing(false);
-            setMode('idle');
-          }
-        }
-      }, 500); // Give native API half a second to fire final onresult
     }
-  }, [text, progress]);
+  }, []);
 
   const reset = () => {
     setText('');
