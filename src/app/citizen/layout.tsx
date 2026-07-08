@@ -80,7 +80,7 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
           <Link href="/" className="flex items-center gap-2">
             <img
-              src="/logo.png"
+              src="/logo-v2.png"
               alt="Pragathi Path Logo"
               className="h-8 w-auto object-contain"
             />

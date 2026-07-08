@@ -572,7 +572,7 @@ export default function LandingPage() {
             <div className="md:col-span-5 space-y-4">
               <div className="flex items-center gap-3">
                 <Image 
-                  src="/logo.png" 
+                  src="/logo-v2.png" 
                   alt="Pragathi Path Logo" 
                   width={32}
                   height={32}

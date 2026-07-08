@@ -66,7 +66,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group">
               <Image
-                src="/logo.png"
+                src="/logo-v2.png"
                 alt="Pragathi Path Logo"
                 width={40}
                 height={40}

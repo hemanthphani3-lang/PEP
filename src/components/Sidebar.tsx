@@ -50,7 +50,7 @@ export default function Sidebar() {
       <div className="md:hidden flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-4 sticky top-0 z-30 shadow-sm">
         <Link href="/dashboard" className="flex items-center gap-2">
           <Image
-            src="/logo.png"
+            src="/logo-v2.png"
             alt="Pragathi Path Logo"
             width={32}
             height={32}
@@ -83,7 +83,7 @@ export default function Sidebar() {
               <div className="flex items-center justify-between pb-6 border-b border-slate-100">
                 <Link href="/" className="flex items-center gap-2">
                   <Image
-                    src="/logo.png"
+                    src="/logo-v2.png"
                     alt="Pragathi Path Logo"
                     width={32}
                     height={32}
@@ -158,7 +158,7 @@ export default function Sidebar() {
         <div className="p-6 border-b border-slate-100 flex flex-col gap-1">
           <Link href="/" className="flex items-center gap-2 group">
             <Image
-              src="/logo.png"
+              src="/logo-v2.png"
               alt="Pragathi Path Logo"
               width={40}
               height={40}
