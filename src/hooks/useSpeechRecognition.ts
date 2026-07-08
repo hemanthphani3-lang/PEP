@@ -139,38 +139,46 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
             setIsTranscribing(true);
             
             try {
-              const reader = new FileReader();
-              reader.onload = async () => {
-                try {
-                  const base64DataUrl = reader.result as string;
-                  let transcription = "";
-                  
-                  if (isSarvamConfigured()) {
-                    console.log("Transcribing with Sarvam AI STT...");
-                    transcription = await transcribeAudioWithSarvam(base64DataUrl, mimeType, preferredLang);
-                  }
-                  
-                  if (!transcription || transcription === "Audio transcription could not be recognized.") {
-                    console.log("Transcribing with Gemini Speech-to-Text...");
-                    transcription = await transcribeAudio(base64DataUrl, mimeType, preferredLang);
-                  }
+              let base64DataUrl = "";
+              let activeMimeType = mimeType;
 
-                  if (transcription && transcription !== "Audio transcription could not be recognized.") {
-                    setText(transcription);
-                  } else {
-                    setError('Could not recognize speech from audio.');
-                  }
-                } catch (err) {
-                  console.error('Audio transcription fallback error:', err);
-                  setError('Failed to process audio for fallback transcription.');
-                } finally {
-                  setIsTranscribing(false);
-                  setMode('idle');
-                }
-              };
-              reader.readAsDataURL(audioBlob);
+              try {
+                console.log("Attempting client-side transcoding to standard WAV...");
+                base64DataUrl = await convertWebmToWavBase64(audioBlob);
+                activeMimeType = "audio/wav";
+                console.log("WAV Transcoding successful!");
+              } catch (transcodeErr) {
+                console.warn("Client-side WAV transcode failed, falling back to raw container:", transcodeErr);
+                // Fallback: read raw base64
+                base64DataUrl = await new Promise<string>((resolve, reject) => {
+                  const reader = new FileReader();
+                  reader.onload = () => resolve(reader.result as string);
+                  reader.onerror = reject;
+                  reader.readAsDataURL(audioBlob);
+                });
+              }
+              
+              let transcription = "";
+              
+              if (isSarvamConfigured()) {
+                console.log("Transcribing with Sarvam AI STT...");
+                transcription = await transcribeAudioWithSarvam(base64DataUrl, activeMimeType, preferredLang);
+              }
+              
+              if (!transcription || transcription === "Audio transcription could not be recognized.") {
+                console.log("Transcribing with Gemini Speech-to-Text...");
+                transcription = await transcribeAudio(base64DataUrl, activeMimeType, preferredLang);
+              }
+
+              if (transcription && transcription !== "Audio transcription could not be recognized.") {
+                setText(transcription);
+              } else {
+                setError('Could not recognize speech from audio.');
+              }
             } catch (err) {
-              console.error("Critical error in fallback logic", err);
+              console.error('Audio transcription fallback error:', err);
+              setError('Failed to process audio for fallback transcription.');
+            } finally {
               setIsTranscribing(false);
               setMode('idle');
             }
@@ -219,6 +227,9 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
   }, [mode, preferredLang]);
 
   const stopRecording = useCallback(() => {
+    // Resume AudioContext on user stop gesture to satisfy Safari's gesture lock for decodeAudioData
+    initAudioContext();
+
     setIsRecording(false);
     if (timerRef.current) clearInterval(timerRef.current);
 
