@@ -160,14 +160,19 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
               
               let transcription = "";
               
-              if (isSarvamConfigured()) {
-                console.log("Transcribing with Sarvam AI STT...");
-                transcription = await transcribeAudioWithSarvam(base64DataUrl, activeMimeType, preferredLang);
-              }
-              
-              if (!transcription || transcription === "Audio transcription could not be recognized.") {
-                console.log("Transcribing with Gemini Speech-to-Text...");
+              if (preferredLang === "en") {
+                console.log("English UI active. Routing to Gemini STT for language auto-detection...");
                 transcription = await transcribeAudio(base64DataUrl, activeMimeType, preferredLang);
+              } else {
+                if (isSarvamConfigured()) {
+                  console.log("Transcribing with Sarvam AI STT...");
+                  transcription = await transcribeAudioWithSarvam(base64DataUrl, activeMimeType, preferredLang);
+                }
+                
+                if (!transcription || transcription === "Audio transcription could not be recognized.") {
+                  console.log("Transcribing fallback with Gemini Speech-to-Text...");
+                  transcription = await transcribeAudio(base64DataUrl, activeMimeType, preferredLang);
+                }
               }
 
               if (transcription && transcription !== "Audio transcription could not be recognized.") {

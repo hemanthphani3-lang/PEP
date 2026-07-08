@@ -239,9 +239,9 @@ export async function transcribeAudio(
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const prompt = `You are an expert multilingual speech-to-text transcriber for Indian languages.
-Listen to this audio recording. The speaker is speaking in ${targetLang}.
-Transcribe the audio accurately into ${targetLang} text using the native script of ${targetLang} (e.g., Telugu script for Telugu, Devanagari script for Hindi, Latin/English script for English).
-Return ONLY the transcribed ${targetLang} text — no explanations, no labels, no translations, no prefixes.
+Listen to this audio recording. The speaker may be speaking in Telugu, Hindi, Tamil, or English.
+Detect the language being spoken, and transcribe the audio accurately into that spoken language using its native script (e.g., Telugu script for Telugu, Devanagari script for Hindi, Tamil script for Tamil, or Latin script for English).
+Return ONLY the transcribed text in the spoken language — do not translate it, do not add explanations, do not add labels, do not add prefixes.
 If the audio is silent or unrecognisable, return exactly: "Audio transcription could not be recognized."`;
 
       const response = await model.generateContent([
