@@ -306,6 +306,14 @@ export default function SubmitRequest() {
   const [processingLogs, setProcessingLogs] = useState<string[]>([]);
   const [photoSource, setPhotoSource] = useState<"camera" | "gallery" | "sample" | null>(null);
 
+  // Location modal state (shown after gallery upload)
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
+  const [locationCountry, setLocationCountry] = useState("India");
+  const [locationState, setLocationState] = useState("");
+  const [locationCity, setLocationCity] = useState("");
+  const [locationGeoError, setLocationGeoError] = useState("");
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
   const mapIframeRef = useRef<HTMLIFrameElement>(null);
 
   // Auto Geolocate on Component Mount
@@ -409,8 +417,41 @@ export default function SubmitRequest() {
     };
     reader.readAsDataURL(file);
     
-    // Alert the user to manually set coordinates
-    alert("Photo uploaded from Gallery. Please manually select or adjust the location pins on the map.");
+    // Open location modal instead of alert
+    setLocationCountry("India");
+    setLocationState("");
+    setLocationCity("");
+    setLocationGeoError("");
+    setIsLocationModalOpen(true);
+  };
+
+  const handleLocationSubmit = async () => {
+    if (!locationCity.trim() || !locationState.trim()) {
+      setLocationGeoError("Please enter both State and City.");
+      return;
+    }
+    setIsGeocoding(true);
+    setLocationGeoError("");
+    try {
+      const query = `${locationCity.trim()}, ${locationState.trim()}, ${locationCountry.trim()}`;
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`,
+        { headers: { "Accept-Language": "en" } }
+      );
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const { lat: gLat, lon: gLon } = data[0];
+        setLat(parseFloat(gLat));
+        setLng(parseFloat(gLon));
+        setIsLocationModalOpen(false);
+      } else {
+        setLocationGeoError("Location not found. Please check the details and try again.");
+      }
+    } catch (err) {
+      setLocationGeoError("Could not connect to geocoding service. Please try again.");
+    } finally {
+      setIsGeocoding(false);
+    }
   };
 
   const selectSampleImage = (url: string) => {
@@ -917,6 +958,92 @@ export default function SubmitRequest() {
         </AnimatePresence>
         </div>{/* /max-w-4xl */}
       </main>
+
+      {/* Location Modal — shown after gallery upload */}
+      <AnimatePresence>
+        {isLocationModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-white rounded-3xl border border-slate-200 p-6 w-full max-w-sm shadow-2xl space-y-4"
+            >
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                    <MapPin className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-800">Set Photo Location</h3>
+                </div>
+                <p className="text-xs text-slate-400">Enter the location where this photo was taken to geotag your submission.</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Country</label>
+                  <input
+                    type="text"
+                    value={locationCountry}
+                    onChange={(e) => setLocationCountry(e.target.value)}
+                    placeholder="e.g. India"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">State <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={locationState}
+                    onChange={(e) => setLocationState(e.target.value)}
+                    placeholder="e.g. Andhra Pradesh"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">City / District <span className="text-red-500">*</span></label>
+                  <input
+                    type="text"
+                    value={locationCity}
+                    onChange={(e) => setLocationCity(e.target.value)}
+                    placeholder="e.g. Visakhapatnam"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+                  />
+                </div>
+              </div>
+
+              {locationGeoError && (
+                <div className="p-2.5 bg-red-50 text-red-600 rounded-xl border border-red-100 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  {locationGeoError}
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setIsLocationModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Skip
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLocationSubmit}
+                  disabled={isGeocoding}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {isGeocoding ? (
+                    <><Loader2 className="w-4 h-4 animate-spin" /> Locating...</>
+                  ) : (
+                    <><MapPin className="w-4 h-4" /> Set Location</>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Name Prompt Modal */}
       <AnimatePresence>
