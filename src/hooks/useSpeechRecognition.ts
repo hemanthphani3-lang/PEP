@@ -159,22 +159,29 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
           
           try {
             // Convert WebM Blob to WAV Base64 string for Sarvam
-            const wavBase64Url = await convertWebmToWavBase64(audioBlob);
+            // This might fail on Safari mobile due to AudioContext being outside a user gesture
+            let wavBase64Url = "";
+            let wavSuccess = false;
+            try {
+              wavBase64Url = await convertWebmToWavBase64(audioBlob);
+              wavSuccess = true;
+            } catch (convErr) {
+              console.warn("Failed to convert to WAV (possibly iOS Safari constraint):", convErr);
+            }
             
-            // We use the original base64DataUrl for Gemini if Sarvam fails (as Gemini supports WebM natively)
+            // We use the original base64DataUrl for Gemini if Sarvam fails
             const reader = new FileReader();
             reader.onload = async () => {
               try {
                 const base64DataUrl = reader.result as string;
                 let transcription = "";
                 
-                if (isSarvamConfigured()) {
+                if (isSarvamConfigured() && wavSuccess) {
                   console.log("Transcribing fallback with Sarvam AI STT...");
-                  // Pass the WAV data instead of WebM
                   transcription = await transcribeAudioWithSarvam(wavBase64Url, 'audio/wav', preferredLang);
                 }
                 
-                // If Sarvam is not configured or failed to return text, fallback to Gemini
+                // Fallback to Gemini if Sarvam isn't configured, WAV conversion failed, or Sarvam transcription failed
                 if (!transcription || transcription === "Audio transcription could not be recognized.") {
                   console.log("Transcribing fallback with Gemini Speech-to-Text...");
                   transcription = await transcribeAudio(base64DataUrl, mimeType, preferredLang);
@@ -196,7 +203,7 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
             };
             reader.readAsDataURL(audioBlob);
           } catch (err) {
-            console.error("Failed to convert audio to WAV", err);
+            console.error("Critical error in fallback logic", err);
             setIsTranscribing(false);
             setMode('idle');
           }
