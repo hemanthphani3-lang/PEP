@@ -196,13 +196,17 @@ export default function DemoSettings() {
                     {/* Gemini Status */}
                     <div className="flex items-center justify-between text-xs p-2.5 border border-slate-150 rounded-lg bg-slate-50">
                       <span className="text-slate-600 font-medium">Gemini 2.5 Flash</span>
-                      {geminiKey ? (
-                        <span className="flex items-center gap-1 text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                          <CheckCircle className="w-3.5 h-3.5" /> Live API
-                        </span>
-                      ) : (
+                      {forceMock ? (
                         <span className="flex items-center gap-1 text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
                           <AlertCircle className="w-3.5 h-3.5" /> Simulated
+                        </span>
+                      ) : geminiKey ? (
+                        <span className="flex items-center gap-1 text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                          <CheckCircle className="w-3.5 h-3.5" /> Live API (Custom Key)
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                          <CheckCircle className="w-3.5 h-3.5" /> Live API (Server Key)
                         </span>
                       )}
                     </div>
@@ -210,13 +214,17 @@ export default function DemoSettings() {
                     {/* Sarvam AI Status */}
                     <div className="flex items-center justify-between text-xs p-2.5 border border-slate-150 rounded-lg bg-slate-50">
                       <span className="text-slate-600 font-medium">Sarvam AI API</span>
-                      {sarvamKey ? (
-                        <span className="flex items-center gap-1 text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                          <CheckCircle className="w-3.5 h-3.5" /> Live API
-                        </span>
-                      ) : (
+                      {forceMock ? (
                         <span className="flex items-center gap-1 text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
                           <AlertCircle className="w-3.5 h-3.5" /> Simulated
+                        </span>
+                      ) : sarvamKey ? (
+                        <span className="flex items-center gap-1 text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                          <CheckCircle className="w-3.5 h-3.5" /> Live API (Custom Key)
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-emerald-600 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                          <CheckCircle className="w-3.5 h-3.5" /> Live API (Server Key)
                         </span>
                       )}
                     </div>

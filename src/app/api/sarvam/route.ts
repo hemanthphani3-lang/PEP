@@ -3,7 +3,12 @@ import { NextResponse } from "next/server";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, apiKey } = body;
+    let { action, apiKey } = body;
+
+    // Fallback to server-side environment variables if client did not send a key
+    if (!apiKey || !apiKey.trim() || apiKey === "server_env_fallback") {
+      apiKey = process.env.NEXT_PUBLIC_SARVAM_API_KEY || process.env.SARVAM_API_KEY;
+    }
 
     if (!apiKey) {
       return NextResponse.json({ error: "API key is required" }, { status: 400 });

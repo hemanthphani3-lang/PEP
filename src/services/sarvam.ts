@@ -5,10 +5,15 @@ export function getSarvamApiKey(): string | null {
   if (typeof window === "undefined") return process.env.NEXT_PUBLIC_SARVAM_API_KEY || null;
   const customKey = localStorage.getItem("civicpulse_sarvam_key");
   if (customKey && customKey.trim()) return customKey;
-  return process.env.NEXT_PUBLIC_SARVAM_API_KEY || null;
+  return process.env.NEXT_PUBLIC_SARVAM_API_KEY || "server_env_fallback";
 }
 
 export function isSarvamConfigured(): boolean {
+  if (typeof window !== "undefined") {
+    const forceMock = localStorage.getItem("civicpulse_force_mock") === "true";
+    if (forceMock) return false;
+    return true; // Always configured since backend route has env key fallback
+  }
   return !!getSarvamApiKey();
 }
 
