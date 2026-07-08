@@ -167,30 +167,18 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
           setIsTranscribing(true);
           
           try {
-            // Convert WebM Blob to WAV Base64 string for Sarvam
-            // This might fail on Safari mobile due to AudioContext being outside a user gesture
-            let wavBase64Url = "";
-            let wavSuccess = false;
-            try {
-              wavBase64Url = await convertWebmToWavBase64(audioBlob);
-              wavSuccess = true;
-            } catch (convErr) {
-              console.warn("Failed to convert to WAV (possibly iOS Safari constraint):", convErr);
-            }
-            
-            // We use the original base64DataUrl for Gemini if Sarvam fails
             const reader = new FileReader();
             reader.onload = async () => {
               try {
                 const base64DataUrl = reader.result as string;
                 let transcription = "";
                 
-                if (isSarvamConfigured() && wavSuccess) {
+                if (isSarvamConfigured()) {
                   console.log("Transcribing fallback with Sarvam AI STT...");
-                  transcription = await transcribeAudioWithSarvam(wavBase64Url, 'audio/wav', preferredLang);
+                  transcription = await transcribeAudioWithSarvam(base64DataUrl, mimeType, preferredLang);
                 }
                 
-                // Fallback to Gemini if Sarvam isn't configured, WAV conversion failed, or Sarvam transcription failed
+                // Fallback to Gemini if Sarvam isn't configured or Sarvam transcription failed
                 if (!transcription || transcription === "Audio transcription could not be recognized.") {
                   console.log("Transcribing fallback with Gemini Speech-to-Text...");
                   transcription = await transcribeAudio(base64DataUrl, mimeType, preferredLang);
