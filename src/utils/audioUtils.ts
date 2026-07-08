@@ -1,12 +1,27 @@
-// Utility to convert AudioBlob to WAV format for APIs that don't support WebM (like Sarvam AI)
+let sharedAudioContext: any = null;
+
+export function initAudioContext() {
+  if (typeof window === 'undefined') return;
+  if (!sharedAudioContext) {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (AudioContextClass) {
+      sharedAudioContext = new AudioContextClass();
+    }
+  }
+  if (sharedAudioContext && sharedAudioContext.state === 'suspended') {
+    sharedAudioContext.resume();
+  }
+}
 
 export async function convertWebmToWavBase64(webmBlob: Blob): Promise<string> {
   const arrayBuffer = await webmBlob.arrayBuffer();
   
-  // Use AudioContext to decode the webm audio
-  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-  const audioContext = new AudioContextClass();
-  const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+  if (!sharedAudioContext) {
+    initAudioContext();
+  }
+  
+  // Use shared AudioContext to decode the webm audio
+  const audioBuffer = await sharedAudioContext.decodeAudioData(arrayBuffer);
   
   // Convert AudioBuffer to WAV ArrayBuffer
   const wavArrayBuffer = audioBufferToWav(audioBuffer);

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { transcribeAudio } from '@/services/gemini';
 import { isSarvamConfigured, transcribeAudioWithSarvam } from '@/services/sarvam';
-import { convertWebmToWavBase64 } from '@/utils/audioUtils';
+import { convertWebmToWavBase64, initAudioContext } from '@/utils/audioUtils';
 
 
 export interface UseSpeechRecognitionResult {
@@ -68,6 +68,9 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
   }, []);
 
   const startRecording = useCallback(async () => {
+    // Initialize AudioContext immediately on user gesture to avoid Safari constraints
+    initAudioContext();
+    
     setError(null);
     setAudioDataUrl(null);
     audioChunksRef.current = [];
