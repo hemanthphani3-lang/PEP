@@ -40,11 +40,11 @@ export async function POST(request: Request) {
       // Determine speaker voice based on language
       let speaker = "aditya";
       if (targetLanguageCode === "te-IN") {
-        speaker = "meera";
+        speaker = "kavitha";
       } else if (targetLanguageCode === "hi-IN") {
         speaker = "shubh";
       } else if (targetLanguageCode === "ta-IN") {
-        speaker = "meera";
+        speaker = "kavitha";
       }
 
       const res = await fetch("https://api.sarvam.ai/text-to-speech", {
@@ -80,16 +80,69 @@ export async function POST(request: Request) {
       const base64Data = audio.includes(",") ? audio.split(",")[1] : audio;
       const buffer = Buffer.from(base64Data, "base64");
       
+      // Robustly detect format from magic bytes to handle different mobile audio containers
+      let detectedMime = "audio/webm";
+      let detectedExt = "webm";
+
+      if (buffer.length > 8) {
+        const magic32 = buffer.readUInt32BE(0);
+        // RIFF -> WAV
+        if (magic32 === 0x52494646) {
+          detectedMime = "audio/wav";
+          detectedExt = "wav";
+        }
+        // EBML -> WEBM (1A 45 DF A3)
+        else if (magic32 === 0x1A45DFA3) {
+          detectedMime = "audio/webm";
+          detectedExt = "webm";
+        }
+        // MP4 ftyp box (bytes 4-7 equal 'ftyp')
+        else if (buffer.toString("ascii", 4, 8) === "ftyp") {
+          detectedMime = "audio/mp4";
+          detectedExt = "mp4";
+        }
+        // ADTS AAC frame starts with 0xFFF or 0xFF0
+        else if (buffer[0] === 0xFF && (buffer[1] & 0xF0) === 0xF0) {
+          detectedMime = "audio/aac";
+          detectedExt = "aac";
+        }
+        // ID3 v2 (MP3) -> ID3
+        else if (buffer.toString("ascii", 0, 3) === "ID3") {
+          detectedMime = "audio/mp3";
+          detectedExt = "mp3";
+        }
+        // MP3 frame sync (first 11 bits set 0xFFE / 0xFFF)
+        else if (buffer[0] === 0xFF && (buffer[1] & 0xE0) === 0xE0) {
+          detectedMime = "audio/mp3";
+          detectedExt = "mp3";
+        }
+        // Fallback: Check provided mimeType
+        else if (mimeType) {
+          const lowerMime = mimeType.toLowerCase();
+          if (lowerMime.includes("mp4") || lowerMime.includes("m4a") || lowerMime.includes("aac")) {
+            detectedMime = "audio/mp4";
+            detectedExt = "mp4";
+          } else if (lowerMime.includes("wav")) {
+            detectedMime = "audio/wav";
+            detectedExt = "wav";
+          } else if (lowerMime.includes("ogg")) {
+            detectedMime = "audio/ogg";
+            detectedExt = "ogg";
+          } else if (lowerMime.includes("mp3") || lowerMime.includes("mpeg")) {
+            detectedMime = "audio/mp3";
+            detectedExt = "mp3";
+          }
+        }
+      }
+
       const formData = new FormData();
-      const blobType = mimeType || "audio/webm";
-      const blob = new Blob([buffer], { type: blobType });
-      const ext = blobType.includes("mp4") ? "mp4" : blobType.includes("ogg") ? "ogg" : blobType.includes("wav") ? "wav" : "webm";
-      formData.append("file", blob, `audio.${ext}`);
-      formData.append("model", "saaras:v2.5");
+      const blob = new Blob([buffer], { type: detectedMime });
+      formData.append("file", blob, `audio.${detectedExt}`);
+      formData.append("model", "saaras:v3");
       formData.append("mode", "transcribe");
       formData.append("language_code", languageCode || "en-IN");
 
-      const res = await fetch("https://api.sarvam.ai/speech-to-text-translate", {
+      const res = await fetch("https://api.sarvam.ai/speech-to-text", {
         method: "POST",
         headers: {
           "api-subscription-key": apiKey,

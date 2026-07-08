@@ -219,13 +219,30 @@ export async function speakText(
 ): Promise<void> {
   const tLang = mapLangCode(language);
 
+  // Create the Audio object synchronously inside the call stack of the user gesture to unlock it on mobile
+  let audio: HTMLAudioElement | null = null;
+  if (typeof window !== "undefined") {
+    audio = new Audio();
+    // Play a micro-segment of silence to bypass mobile browser gesture autoplay policies
+    audio.src = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAAA";
+    try {
+      audio.play().catch(() => {});
+    } catch (e) {}
+  }
+
   // 1. Try Live Sarvam TTS if configured
-  if (isSarvamConfigured()) {
+  if (isSarvamConfigured() && audio) {
     try {
       if (onStart) onStart();
       const audioUrl = await generateSpeechWithSarvam(text, language);
-      const audio = new Audio(audioUrl);
+      
+      // Update source on already unlocked audio object
+      audio.src = audioUrl;
       audio.onended = () => {
+        if (onEnd) onEnd();
+      };
+      audio.onerror = (e) => {
+        console.error("Sarvam Audio playback error:", e);
         if (onEnd) onEnd();
       };
       await audio.play();
