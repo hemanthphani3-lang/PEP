@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, User, Sparkles } from "lucide-react";
+import { X, Send } from "lucide-react";
+import Image from "next/image";
 import { DBService, PrajaChatMessage } from "@/services/db";
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from "framer-motion";
@@ -163,9 +164,11 @@ export default function PrajaChatbot() {
               onClick={() => setIsOpen(true)}
               className="relative w-16 h-16 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 overflow-hidden border-2 border-white ring-4 ring-blue-100 group mt-4 bg-white"
             >
-              <img 
+              <Image 
                 src="/praja_avatar.png" 
                 alt="Praja Prathinidhi" 
+                width={64}
+                height={64}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
               />
               <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></div>
@@ -181,7 +184,7 @@ export default function PrajaChatbot() {
             <div className="bg-gradient-to-r from-blue-700 to-blue-600 p-4 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-white/20 p-0.5 border border-white/30 overflow-hidden shadow-inner">
-                  <img src="/praja_avatar.png" alt="Praja Prathinidhi" className="w-full h-full object-cover" />
+                  <Image src="/praja_avatar.png" alt="Praja Prathinidhi" width={40} height={40} className="w-full h-full object-cover" />
                 </div>
                 <div>
                   <h3 className="text-white font-bold font-outfit text-sm leading-tight">Praja Prathinidhi</h3>

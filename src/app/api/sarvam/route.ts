@@ -85,11 +85,11 @@ export async function POST(request: Request) {
       const blob = new Blob([buffer], { type: blobType });
       const ext = blobType.includes("mp4") ? "mp4" : blobType.includes("ogg") ? "ogg" : blobType.includes("wav") ? "wav" : "webm";
       formData.append("file", blob, `audio.${ext}`);
-      formData.append("model", "saaras:v3");
+      formData.append("model", "saaras:v2.5");
       formData.append("mode", "transcribe");
       formData.append("language_code", languageCode || "en-IN");
 
-      const res = await fetch("https://api.sarvam.ai/speech-to-text", {
+      const res = await fetch("https://api.sarvam.ai/speech-to-text-translate", {
         method: "POST",
         headers: {
           "api-subscription-key": apiKey,

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { 
   BarChart3, 
@@ -48,9 +49,11 @@ export default function Sidebar() {
       {/* Mobile Top Bar */}
       <div className="md:hidden flex h-16 w-full items-center justify-between border-b border-slate-200 bg-white px-4 sticky top-0 z-30 shadow-sm">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <img
+          <Image
             src="/logo.png"
             alt="Pragathi Path Logo"
+            width={32}
+            height={32}
             className="h-8 w-auto object-contain"
           />
           <span className="font-outfit font-bold text-sm tracking-tight text-slate-800">
@@ -79,9 +82,11 @@ export default function Sidebar() {
             >
               <div className="flex items-center justify-between pb-6 border-b border-slate-100">
                 <Link href="/" className="flex items-center gap-2">
-                  <img
+                  <Image
                     src="/logo.png"
                     alt="Pragathi Path Logo"
+                    width={32}
+                    height={32}
                     className="h-8 w-auto object-contain"
                   />
                   <span className="font-outfit font-bold text-base text-slate-800">
@@ -152,9 +157,11 @@ export default function Sidebar() {
       <aside className="hidden md:flex w-64 flex-col border-r border-slate-200 bg-white h-screen sticky top-0 overflow-y-auto">
         <div className="p-6 border-b border-slate-100 flex flex-col gap-1">
           <Link href="/" className="flex items-center gap-2 group">
-            <img
+            <Image
               src="/logo.png"
               alt="Pragathi Path Logo"
+              width={40}
+              height={40}
               className="h-10 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
             />
             <div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { transcribeAudio } from '@/services/gemini';
 import { isSarvamConfigured, transcribeAudioWithSarvam } from '@/services/sarvam';
+import { convertWebmToWavBase64 } from '@/utils/audioUtils';
 
 
 export interface UseSpeechRecognitionResult {
@@ -139,7 +140,7 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
       mediaRecorderRef.current.stop();
       
       // We always want to capture the audio Blob to save it for playback, regardless of which speech engine runs.
-      setTimeout(() => {
+      setTimeout(async () => {
         if (audioChunksRef.current.length === 0) return;
         const mimeType = mediaRecorderRef.current?.mimeType || 'audio/webm';
         const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
@@ -156,38 +157,49 @@ export function useSpeechRecognition(preferredLang: string = 'en'): UseSpeechRec
           setMode('whisper'); // keeping state name for compatibility with UI
           setIsTranscribing(true);
           
-          const reader = new FileReader();
-          reader.onload = async () => {
-            try {
-              const base64DataUrl = reader.result as string;
-              let transcription = "";
-              
-              if (isSarvamConfigured()) {
-                console.log("Transcribing fallback with Sarvam AI STT...");
-                transcription = await transcribeAudioWithSarvam(base64DataUrl, mimeType, preferredLang);
-              }
-              
-              // If Sarvam is not configured or failed to return text, fallback to Gemini
-              if (!transcription || transcription === "Audio transcription could not be recognized.") {
-                console.log("Transcribing fallback with Gemini Speech-to-Text...");
-                transcription = await transcribeAudio(base64DataUrl, mimeType, preferredLang);
-              }
+          try {
+            // Convert WebM Blob to WAV Base64 string for Sarvam
+            const wavBase64Url = await convertWebmToWavBase64(audioBlob);
+            
+            // We use the original base64DataUrl for Gemini if Sarvam fails (as Gemini supports WebM natively)
+            const reader = new FileReader();
+            reader.onload = async () => {
+              try {
+                const base64DataUrl = reader.result as string;
+                let transcription = "";
+                
+                if (isSarvamConfigured()) {
+                  console.log("Transcribing fallback with Sarvam AI STT...");
+                  // Pass the WAV data instead of WebM
+                  transcription = await transcribeAudioWithSarvam(wavBase64Url, 'audio/wav', preferredLang);
+                }
+                
+                // If Sarvam is not configured or failed to return text, fallback to Gemini
+                if (!transcription || transcription === "Audio transcription could not be recognized.") {
+                  console.log("Transcribing fallback with Gemini Speech-to-Text...");
+                  transcription = await transcribeAudio(base64DataUrl, mimeType, preferredLang);
+                }
 
-              if (transcription && transcription !== "Audio transcription could not be recognized.") {
-                setText(transcription);
-              } else {
-                setError('Could not recognize speech from audio.');
+                if (transcription && transcription !== "Audio transcription could not be recognized.") {
+                  setText(transcription);
+                } else {
+                  setError('Could not recognize speech from audio.');
+                }
+                setIsTranscribing(false);
+                setMode('idle');
+              } catch (err) {
+                console.error('Audio transcription fallback error:', err);
+                setError('Failed to process audio for fallback transcription.');
+                setIsTranscribing(false);
+                setMode('idle');
               }
-              setIsTranscribing(false);
-              setMode('idle');
-            } catch (err) {
-              console.error('Audio transcription fallback error:', err);
-              setError('Failed to process audio for fallback transcription.');
-              setIsTranscribing(false);
-              setMode('idle');
-            }
-          };
-          reader.readAsDataURL(audioBlob);
+            };
+            reader.readAsDataURL(audioBlob);
+          } catch (err) {
+            console.error("Failed to convert audio to WAV", err);
+            setIsTranscribing(false);
+            setMode('idle');
+          }
         }
       }, 500); // Give native API half a second to fire final onresult
     }

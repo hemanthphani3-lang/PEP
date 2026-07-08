@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import { 
   PlusCircle, 
@@ -255,11 +256,17 @@ export default function LandingPage() {
            single seamless cinematic full-bleed banner.
       ─────────────────────────────────────────────────── */}
       <div className="relative">
-        {/* Shared crowd background image */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/hero-crowd.jpg')" }}
-        />
+        {/* Shared crowd background image (scaled and clipped to hide stock edge watermarks) */}
+        <div className="absolute inset-0 overflow-hidden z-0">
+          <Image
+            src="/hero-crowd.jpg"
+            alt="Citizens of India"
+            fill
+            priority
+            quality={85}
+            className="object-cover object-center scale-[1.15]"
+          />
+        </div>
         {/* Multi-layer dark overlay for legibility */}
         <div className="absolute inset-0 bg-gradient-to-b from-slate-900/85 via-slate-800/72 to-slate-900/88" />
         <div className="absolute inset-0 bg-gradient-to-r from-blue-950/40 via-transparent to-indigo-950/40" />
@@ -271,8 +278,8 @@ export default function LandingPage() {
           <Navbar transparent />
         </div>
 
-        {/* Hero content */}
-        <section className="relative z-10 overflow-hidden py-20 sm:py-28 lg:py-36">
+        {/* Hero content (added pt to compensate for fixed navbar) */}
+        <section className="relative z-10 overflow-hidden pt-36 pb-20 sm:pt-40 sm:pb-28 lg:pt-48 lg:pb-36">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: 40 }}
@@ -494,49 +501,60 @@ export default function LandingPage() {
       {/* Login Selection Modal */}
       <AnimatePresence>
         {isLoginModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-0">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl relative"
+              initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              animate={{ opacity: 1, backdropFilter: "blur(12px)" }}
+              exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
+              className="absolute inset-0 bg-slate-900/60"
+              onClick={() => setIsLoginModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-white/90 backdrop-blur-2xl rounded-[2rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-white/50 overflow-hidden"
             >
+              {/* Decorative glows */}
+              <div className="absolute -top-24 -left-24 w-48 h-48 bg-blue-400/20 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl pointer-events-none" />
+
               <button 
                 onClick={() => setIsLoginModalOpen(false)}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-50 hover:bg-slate-100 p-2 rounded-full transition-colors"
+                className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 bg-slate-100/50 hover:bg-slate-200/80 p-2.5 rounded-full transition-all duration-300 z-10"
               >
                 <X className="w-4 h-4" />
               </button>
 
-              <div className="text-center mb-6 mt-2">
-                <h3 className="text-xl font-bold text-slate-800 font-outfit">Select Profile</h3>
-                <p className="text-xs text-slate-500 mt-1">Choose how you want to interact with Pragathi Path.</p>
+              <div className="text-center mb-8 relative z-10">
+                <h3 className="text-2xl font-black text-slate-900 font-outfit tracking-tight">Select Profile</h3>
+                <p className="text-sm text-slate-500 mt-2 font-medium">Choose your portal destination.</p>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4 relative z-10">
                 <Link
                   href="/login/citizen"
-                  className="flex items-center p-4 border border-slate-200 hover:border-blue-500 hover:bg-blue-50 rounded-2xl transition-all duration-300 group cursor-pointer"
+                  className="flex items-center p-4 border border-slate-200/60 bg-white/60 hover:bg-white hover:border-blue-400 hover:shadow-xl hover:shadow-blue-500/10 rounded-2xl transition-all duration-300 group cursor-pointer hover:-translate-y-1"
                 >
-                  <div className="w-12 h-12 bg-slate-100 group-hover:bg-blue-100 text-slate-600 group-hover:text-blue-600 rounded-xl flex items-center justify-center mr-4 transition-colors">
-                    <UserCircle className="w-6 h-6" />
+                  <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 rounded-xl flex items-center justify-center mr-4 shadow-sm border border-blue-200/50 group-hover:scale-110 transition-transform duration-300">
+                    <UserCircle className="w-7 h-7" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-800 font-outfit group-hover:text-blue-700 transition-colors">Citizen</h4>
-                    <p className="text-xs text-slate-500 leading-tight mt-0.5">View public feed and submit new grievances</p>
+                    <h4 className="font-bold text-slate-900 font-outfit text-lg group-hover:text-blue-700 transition-colors">Citizen</h4>
+                    <p className="text-[11px] text-slate-500 leading-tight mt-0.5 font-medium">Public feed & grievance submission</p>
                   </div>
                 </Link>
 
                 <Link
                   href="/login/mp"
-                  className="flex items-center p-4 border border-slate-200 hover:border-emerald-500 hover:bg-emerald-50 rounded-2xl transition-all duration-300 group cursor-pointer"
+                  className="flex items-center p-4 border border-slate-200/60 bg-white/60 hover:bg-white hover:border-emerald-400 hover:shadow-xl hover:shadow-emerald-500/10 rounded-2xl transition-all duration-300 group cursor-pointer hover:-translate-y-1"
                 >
-                  <div className="w-12 h-12 bg-slate-100 group-hover:bg-emerald-100 text-slate-600 group-hover:text-emerald-600 rounded-xl flex items-center justify-center mr-4 transition-colors">
-                    <Briefcase className="w-6 h-6" />
+                  <div className="w-14 h-14 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mr-4 shadow-sm border border-emerald-200/50 group-hover:scale-110 transition-transform duration-300">
+                    <Briefcase className="w-7 h-7" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-800 font-outfit group-hover:text-emerald-700 transition-colors">Member of Parliament</h4>
-                    <p className="text-xs text-slate-500 leading-tight mt-0.5">Access priority algorithms & secure analytics</p>
+                    <h4 className="font-bold text-slate-900 font-outfit text-lg group-hover:text-emerald-700 transition-colors">MP / Official</h4>
+                    <p className="text-[11px] text-slate-500 leading-tight mt-0.5 font-medium">Priority algorithms & analytics</p>
                   </div>
                 </Link>
               </div>
@@ -553,9 +571,11 @@ export default function LandingPage() {
             {/* Left branding */}
             <div className="md:col-span-5 space-y-4">
               <div className="flex items-center gap-3">
-                <img 
+                <Image 
                   src="/logo.png" 
                   alt="Pragathi Path Logo" 
+                  width={32}
+                  height={32}
                   className="h-8 w-auto object-contain"
                 />
                 <span className="font-outfit font-bold text-base tracking-tight text-white">

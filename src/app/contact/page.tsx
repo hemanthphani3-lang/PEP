@@ -93,7 +93,8 @@ export default function ContactPage() {
   const contacts = [
     { name: "Bhimavarapu Hemanth", email: "hemanthphani3@gmail.com" },
     { name: "Sananth Kumar", email: "sananthkumar3@gmail.com" },
-    { name: "Nanda kishore", email: "nandalaala99@gmail.com" }
+    { name: "Nanda kishore", email: "nandalaala99@gmail.com" },
+    { name: "manikanta", email: "manikantag121206@gmail.com" }
   ];
 
   return (

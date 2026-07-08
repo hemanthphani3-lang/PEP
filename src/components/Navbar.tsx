@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Vote, Menu, X, ChevronRight, PlusCircle, Globe } from "lucide-react";
+import { Menu, X, ChevronRight, PlusCircle, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LANGUAGES, LanguageSelectorModal } from "@/components/LanguageSelector";
 
@@ -15,6 +16,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [lang, setLang] = useState("en");
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
@@ -26,6 +28,14 @@ export default function Navbar({ transparent = false }: NavbarProps) {
     return () => window.removeEventListener("language-change", handleLangChange);
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const links = [
     { name: "Home", href: "/" },
     { name: "How It Works", href: "/how-it-works" },
@@ -34,28 +44,33 @@ export default function Navbar({ transparent = false }: NavbarProps) {
   ];
 
   // Transparent (over dark bg) vs default (white) style tokens
-  const headerBg   = transparent ? "bg-transparent border-white/10"        : "bg-white/75 border-slate-200/80 backdrop-blur-md";
-  const logoText   = transparent ? "text-white"                             : "text-slate-800";
-  const subText    = transparent ? "text-white/60"                          : "text-slate-400";
-  const linkBase   = transparent ? "text-white/80 hover:text-white"         : "text-slate-500 hover:text-slate-800";
-  const linkActive = transparent ? "text-white font-extrabold"              : "text-blue-600";
-  const langBtn    = transparent
+  // We disable transparency if the user has scrolled down.
+  const isTransparent = transparent && !isScrolled;
+  const headerBg   = isTransparent ? "bg-transparent border-transparent"        : "bg-white/90 border-slate-200/80 backdrop-blur-md shadow-sm";
+  const logoText   = isTransparent ? "text-white"                             : "text-slate-800";
+  const subText    = isTransparent ? "text-white/60"                          : "text-slate-400";
+  const linkBase   = isTransparent ? "text-white/80 hover:text-white"         : "text-slate-500 hover:text-slate-800";
+  const linkActive = isTransparent ? "text-white font-extrabold"              : "text-blue-600";
+  const langBtn    = isTransparent
     ? "bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm"
     : "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200 shadow-sm hover:shadow";
-  const globeColor = transparent ? "text-emerald-300"                       : "text-blue-500";
-  const suggBtn    = transparent ? "bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm" : "bg-slate-100 hover:bg-slate-200 text-slate-700";
-  const hamburger  = transparent ? "text-white hover:bg-white/10"           : "text-slate-500 hover:bg-slate-100";
+  const globeColor = isTransparent ? "text-emerald-300"                       : "text-blue-500";
+  const suggBtn    = isTransparent ? "bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-sm" : "bg-slate-100 hover:bg-slate-200 text-slate-700";
+  const hamburger  = isTransparent ? "text-white hover:bg-white/10"           : "text-slate-500 hover:bg-slate-100";
 
   return (
     <>
-      <header className={`sticky top-0 z-[100] w-full border-b transition-all duration-300 ${headerBg}`}>
+      <header className={`fixed top-0 left-0 right-0 z-[100] w-full border-b transition-all duration-300 ${headerBg}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-3 group">
-              <img
+              <Image
                 src="/logo.png"
                 alt="Pragathi Path Logo"
+                width={40}
+                height={40}
+                priority
                 className="h-10 w-auto object-contain group-hover:scale-105 transition-transform duration-300"
               />
               <div>
@@ -193,6 +208,9 @@ export default function Navbar({ transparent = false }: NavbarProps) {
         isOpen={isLangModalOpen}
         onClose={() => setIsLangModalOpen(false)}
       />
+
+      {/* Spacer for fixed header on standard pages */}
+      {!transparent && <div className="h-[65px]" />}
     </>
   );
 }
